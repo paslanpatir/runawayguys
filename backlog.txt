@@ -1,0 +1,2 @@
+1. Not Applicable secildiğinde state i sıfırlanmıyor bir sonraki testte hali hazırda seçili geliyor.
+2. aynı session'da iki feedback kaydı atıyor. -- bfname alanını tuttuğu için bu iyi de olabilir
