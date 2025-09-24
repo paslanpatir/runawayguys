@@ -25,42 +25,6 @@ getcontext().prec = 5
 
 
 
-
-
-def ask_user_details():
-    language = st.session_state.user_details["language"]
-    msg = Message(language)
-    st.write(msg.get_text("enter_details_msg"))
-    
-    with st.form("user_details_form"):
-        name    = st.text_input(msg.get_text("name_input"), key="name_input")
-        email   = st.text_input(msg.get_text("email_input"), key="email_input")
-        if st.form_submit_button(msg.get_text("continue_msg")):
-            if name:
-                if email and is_valid_email(email):
-                    st.session_state.user_details["name"] = name
-                    st.session_state.user_details["email"] = email
-                    st.rerun()
-                else:
-                    st.error(msg.get_text("enter_valid_email_msg"))
-            else:
-                st.error(msg.get_text("enter_name_msg"))
-
-def ask_bf_name():
-    language = st.session_state.user_details["language"]
-    msg = Message(language)
-    st.write(msg.get_text("enter_bf_name_msg"))
-
-    with st.form("bf_name_form"):
-        bf_name = st.text_input(msg.get_text("bf_name_input"), key="bf_name_input")
-        if st.form_submit_button(msg.get_text("continue_msg")):
-            if bf_name:
-                st.session_state.user_details["bf_name"] = bf_name
-                st.rerun()
-            else:
-                st.error(msg.get_text("enter_bf_name_msg"))
-
-
 def welcome(name, language):
     msg = Message(language)
     st.markdown(msg.get_text("welcome_message", name=name))

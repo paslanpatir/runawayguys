@@ -1,13 +1,12 @@
 import streamlit as st
 from src.base_step import BaseStep
-from src.messages import Message
+
 
 class AskBoyfriendName(BaseStep):
     name = "boyfriend_name"
 
     def run(self):
-        language = st.session_state.user_details.get("language", "EN")
-        msg = Message(language)
+        msg = self.msg
 
         st.write(msg.get("enter_bf_name_msg"))
 
