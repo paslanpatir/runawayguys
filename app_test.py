@@ -50,6 +50,11 @@ def main():
     st.subheader("🔎 Debug Info")
     st.json(st.session_state.user_details)
 
+    # Also show welcome_shown and other top-level flags
+    st.write("Welcome shown:", st.session_state.get("welcome_shown", False))
+    st.write("Survey completed:", st.session_state.get("survey_completed", False))
+    st.write("Counter:", st.session_state.get("counter", 0))
+
 
 if __name__ == "__main__":
     main()
