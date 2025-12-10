@@ -1,21 +1,22 @@
+"""Main entry point for the Streamlit survey application."""
 import streamlit as st
-from src.messages import Message
-from src.session_manager import SessionManager
-from src.survey_controller import SurveyController
+from src.application.messages import Message
+from src.application.session_manager import SessionManager
+from src.application.survey_controller import SurveyController
 
 # import steps
-from src.ask_language import AskLanguage
-from src.ask_user_details import AskUserDetails
-from src.ask_boyfriend_name import AskBoyfriendName
-from src.welcome import Welcome
-from src.filter_questions_step import FilterQuestionsStep
-from src.redflag_questions_step import RedFlagQuestionsStep
-from src.gtk_questions_step import GTKQuestionsStep
-from src.toxicity_opinion_step import ToxicityOpinionStep
-from src.results_step import ResultsStep
-from src.feedback_step import FeedbackStep
-from src.report_step import ReportStep
-from src.goodbye_step import GoodbyeStep
+from src.application.steps.ask_language import AskLanguage
+from src.application.steps.ask_user_details import AskUserDetails
+from src.application.steps.ask_boyfriend_name import AskBoyfriendName
+from src.application.steps.welcome import Welcome
+from src.application.steps.ask_filter_questions import FilterQuestionsStep
+from src.application.steps.redflag_questions_step import RedFlagQuestionsStep
+from src.application.steps.gtk_questions_step import GTKQuestionsStep
+from src.application.steps.toxicity_opinion_step import ToxicityOpinionStep
+from src.application.steps.results_step import ResultsStep
+from src.application.steps.feedback_step import FeedbackStep
+from src.application.steps.report_step import ReportStep
+from src.application.steps.goodbye_step import GoodbyeStep
 
 
 def main(DB_READ, DB_WRITE):
@@ -47,4 +48,5 @@ def main(DB_READ, DB_WRITE):
     ]
 
     controller = SurveyController(steps)
+    # Progress bar is shown inside controller.run() before each step
     controller.run()
