@@ -265,7 +265,9 @@ class ResultsStep(BaseStep):
                     )
                     print(f"[DEBUG] Found {len(violated_filter_questions) if violated_filter_questions else 0} violated filter questions")
                     if violated_filter_questions:
-                        print(f"[DEBUG] Violated questions: {[q[0] for q in violated_filter_questions]}")
+                        # Print only filter IDs to avoid encoding issues with Turkish characters
+                        violated_ids = [q[2] for q in violated_filter_questions]  # q[2] is filter_id
+                        print(f"[DEBUG] Violated filter IDs: {violated_ids}")
                 else:
                     print(f"[DEBUG] Cannot get violated filter questions: filter_responses={bool(filter_responses)}, filter_questions={bool(filter_questions)}")
                 

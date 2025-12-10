@@ -64,7 +64,7 @@ class InsightPromptBuilder:
         violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         top_redflag_questions: Optional[List[Tuple[str, float, str]]] = None,
         language: str = "EN",
-        max_words: int = 100,
+        max_words: int = 150,
     ) -> str:
         """
         Build the full prompt text including system message (for logging purposes).
@@ -120,8 +120,8 @@ Survey Results:
 
 Please provide:
 1. A detailed analysis of what these results might indicate (longer section - focus here)
-2. Brief supportive advice and encouragement combined (short section - 1-2 sentences)
-3. A harsh reality, exactly one sentence, in a tone like deadpan, blunt, low-energy, mildly sarcastic, emotionally detached, and ruthlessly concise, without crossing into abuse.
+2. A harsh reality (1-2 sentences), in a tone like deadpan, blunt, low-energy, mildly sarcastic, emotionally detached, and ruthlessly concise, without crossing into abuse.
+3. Brief supportive advice and encouragement combined (1-2 sentences)
 
 IMPORTANT: Your response must be strictly under {max_words} words. Maximum {max_words} words. Allocate most words to the analysis section. Focus on being supportive rather than judgmental."""
     
@@ -164,8 +164,8 @@ Anket Sonuçları:
 
 Lütfen şunları sağlayın:
 1. Bu sonuçların ne gösterebileceğine dair detaylı bir analiz (daha uzun bölüm - buraya odaklan)
-2. Kısa destekleyici tavsiye ve teşvik birleşik (kısa bölüm - 1-2 cümle)
-3. Sert bir gerçeklik, tam olarak bir cümle, ölü tonlu, doğrudan, düşük enerjili, hafifçe alaycı, duygusal olarak mesafeli ve acımasızca özlü bir tonda, ancak istismara kaçmadan.
+2. Sert bir gerçeklik (1-2 cümle), ölü tonlu, doğrudan, düşük enerjili, hafifçe alaycı, duygusal olarak mesafeli ve acımasızca özlü bir tonda, ancak istismara kaçmadan.
+3. Kısa destekleyici tavsiye ve teşvik birleşik (kısa bölüm - 1-2 cümle)
 
 ÖNEMLİ: Yanıtınız kesinlikle {max_words} kelimeden az olmalı. Maksimum {max_words} kelime. Kelimelerin çoğunu analiz bölümüne ayırın. Yargılayıcı olmaktan çok destekleyici olmaya odaklanın."""
 
