@@ -230,8 +230,20 @@ class ResultsStep(BaseStep):
                 
                 # Get violated filter questions
                 violated_filter_questions = None
-                filter_responses = self.session.state.get("filter_responses", {})
+                filter_responses = self.session.state.get("filter_responses")
+                
+                # Handle None case - convert to empty dict
+                if filter_responses is None:
+                    filter_responses = {}
+                
                 filter_questions = self.session.state.get("randomized_filters")
+                
+                # Debug: Print filter responses and questions
+                print(f"[DEBUG] Filter responses: {filter_responses}")
+                print(f"[DEBUG] Filter responses type: {type(filter_responses)}")
+                print(f"[DEBUG] Filter questions in session: {filter_questions is not None}")
+                if filter_questions:
+                    print(f"[DEBUG] Filter questions count: {len(filter_questions)}")
                 
                 # If filter questions not in session, load from database
                 if not filter_questions and filter_responses:
@@ -240,14 +252,22 @@ class ResultsStep(BaseStep):
                     repository = QuestionRepository(db_handler)
                     filter_questions = repository.get_filter_questions()
                     # Cache them for potential future use
-                    self.session.state.randomized_filters = filter_questions
+                    if filter_questions:
+                        self.session.state.randomized_filters = filter_questions
+                        print(f"[DEBUG] Loaded {len(filter_questions)} filter questions from database")
                 
                 if filter_responses and filter_questions:
+                    print(f"[DEBUG] Getting violated filter questions from {len(filter_responses)} responses and {len(filter_questions)} questions")
                     violated_filter_questions = get_violated_filter_questions(
                         filter_responses=filter_responses,
                         questions=filter_questions,
                         language=language,
                     )
+                    print(f"[DEBUG] Found {len(violated_filter_questions) if violated_filter_questions else 0} violated filter questions")
+                    if violated_filter_questions:
+                        print(f"[DEBUG] Violated questions: {[q[0] for q in violated_filter_questions]}")
+                else:
+                    print(f"[DEBUG] Cannot get violated filter questions: filter_responses={bool(filter_responses)}, filter_questions={bool(filter_questions)}")
                 
                 # Prepare session data for logging
                 session_data_for_log = {
@@ -283,6 +303,11 @@ class ResultsStep(BaseStep):
         if insights:
             header_text = msg.get("insights_header") if msg.texts.get("insights_header") else "AI-Generated Insights"
             st.subheader(header_text)
+            
+            # Display disclaimer note with rainbow emoji
+            disclaimer_text = msg.get("insights_disclaimer") if msg.texts.get("insights_disclaimer") else "**Note:** This is a simple analysis and may be wrong. Please do not take it seriously, just take it into account simply."
+            st.markdown(f":rainbow[{disclaimer_text}]")
+            
             st.info(insights)
         else:
             unavailable_text = msg.get("insights_unavailable_msg") if msg.texts.get("insights_unavailable_msg") else "AI insights are not available. LLM API is not configured."

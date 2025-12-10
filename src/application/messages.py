@@ -170,6 +170,10 @@ class Message:
                 "TR": "AI içgörüleri mevcut değil. LLM API yapılandırılmamış.",
                 "EN": "AI insights are not available. LLM API is not configured.",
             },
+            "insights_disclaimer": {
+                "TR": "**Not:** Bu basit bir analizdir ve yanlış olabilir. Lütfen ciddiye almayın, sadece dikkate alın.",
+                "EN": "**Note:** This is a simple analysis and may be wrong. Please do not take it seriously, just take it into account simply.",
+            },
         }
 
     def get(self, key, **kwargs):
