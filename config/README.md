@@ -36,6 +36,31 @@ your-email@gmail.com
 your-16-char-app-password
 ```
 
+### LLM Credentials (Optional - for AI Insights)
+
+1. Copy `llm_credentials.example.txt` to `llm_credentials.txt`
+2. Choose a provider and fill in credentials:
+
+**Option A: Hugging Face (Recommended)**
+```
+huggingface
+hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+mistralai/Mistral-7B-Instruct-v0.2
+```
+
+**Option B: Groq (Very Fast)**
+```
+groq
+gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+llama-3.1-8b-instant
+```
+
+**Setup:**
+- **Hugging Face**: Get free token from https://huggingface.co/settings/tokens
+- **Groq**: Get free API key from https://console.groq.com/
+
+See `AVAILABLE_LLM_OPTIONS.md` for more details.
+
 ## Security Notes
 
 ⚠️ **IMPORTANT:**
@@ -58,6 +83,10 @@ Instead of using files, you can set environment variables:
 - `SMTP_PORT`
 - `SENDER_EMAIL`
 - `SENDER_PASSWORD`
+
+**LLM:**
+- `HF_API_TOKEN` (for Hugging Face)
+- `GROQ_API_KEY` (for Groq)
 
 Environment variables take precedence over config files.
 

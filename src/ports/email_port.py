@@ -14,6 +14,7 @@ class EmailPort(ABC):
         toxic_score: float,
         filter_violations: int,
         language: str = "EN",
+        insights: str = None,
     ) -> bool:
         """Send a survey report email."""
         pass

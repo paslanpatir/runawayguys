@@ -27,6 +27,7 @@ class EmailAdapter(EmailPort):
         toxic_score: float,
         filter_violations: int,
         language: str = "EN",
+        insights: str = None,
     ) -> bool:
         """
         Send survey results report via email.
@@ -55,7 +56,7 @@ class EmailAdapter(EmailPort):
 
             # Create email body
             body = self._create_email_body(
-                user_name, bf_name, toxic_score, filter_violations, language
+                user_name, bf_name, toxic_score, filter_violations, language, insights
             )
             msg.attach(MIMEText(body, "html"))
 
@@ -89,9 +90,28 @@ class EmailAdapter(EmailPort):
         toxic_score: float,
         filter_violations: int,
         language: str,
+        insights: str = None,
     ) -> str:
-        """Create HTML email body with survey results."""
+        """Create HTML email body with survey results and insights."""
         score_percentage = round(toxic_score * 100, 1)
+        
+        # Format insights for HTML
+        insights_html = ""
+        if insights:
+            if language == "TR":
+                insights_html = f"""
+                        <div style="background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #2196f3;">
+                            <h3 style="margin-top: 0; color: #1976d2;">🤖 AI İçgörüleri</h3>
+                            <p style="white-space: pre-wrap;">{insights}</p>
+                        </div>
+                """
+            else:
+                insights_html = f"""
+                        <div style="background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #2196f3;">
+                            <h3 style="margin-top: 0; color: #1976d2;">🤖 AI Insights</h3>
+                            <p style="white-space: pre-wrap;">{insights}</p>
+                        </div>
+                """
 
         if language == "TR":
             html = f"""
@@ -107,7 +127,7 @@ class EmailAdapter(EmailPort):
                             <p><strong>Toksiklik Skoru:</strong> {score_percentage}%</p>
                             <p><strong>Filtre İhlalleri:</strong> {filter_violations}</p>
                         </div>
-                        
+                        {insights_html}
                         <p>Detaylı rapor ve grafikler için web sitesini ziyaret edebilirsiniz.</p>
                         
                         <p style="margin-top: 30px; color: #666; font-size: 12px;">
@@ -131,7 +151,7 @@ class EmailAdapter(EmailPort):
                             <p><strong>Toxicity Score:</strong> {score_percentage}%</p>
                             <p><strong>Filter Violations:</strong> {filter_violations}</p>
                         </div>
-                        
+                        {insights_html}
                         <p>Visit our website for detailed reports and graphs.</p>
                         
                         <p style="margin-top: 30px; color: #666; font-size: 12px;">
@@ -158,6 +178,7 @@ def send_survey_report(
             - user_details: dict with 'name', 'bf_name'
             - toxic_score: float
             - filter_violations: int
+            - ai_insights: str (optional) - AI-generated insights
         language: Language code (TR or EN)
         
     Returns:
@@ -168,6 +189,7 @@ def send_survey_report(
     user_details = session_data.get("user_details", {})
     toxic_score = session_data.get("toxic_score", 0)
     filter_violations = session_data.get("filter_violations", 0)
+    insights = session_data.get("ai_insights")
     
     return sender.send_report(
         recipient_email=recipient_email,
@@ -176,5 +198,6 @@ def send_survey_report(
         toxic_score=toxic_score,
         filter_violations=filter_violations,
         language=language,
+        insights=insights,
     )
 

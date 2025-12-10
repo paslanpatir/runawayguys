@@ -16,12 +16,16 @@ class ReportStep(BaseStep):
         email = self.session.user_details.get("email")
         
         if email:
-            # Prepare session data for email
+            # Prepare session data for email (include AI insights if available and LLM is enabled)
+            llm_enabled = self.session.state.get("llm_enabled", False)
             session_data = {
                 "user_details": self.session.user_details,
                 "toxic_score": self.session.state.get("toxic_score", 0),
                 "filter_violations": self.session.state.get("filter_violations", 0),
             }
+            # Only include insights if LLM is enabled
+            if llm_enabled:
+                session_data["ai_insights"] = self.session.state.get("ai_insights")
             
             # Send email
             language = self.session.user_details.get("language", "EN")

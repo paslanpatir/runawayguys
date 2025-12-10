@@ -27,3 +27,8 @@ mkdocs>=1.5.0
 # Utilities
 python-dotenv>=1.0.0
 
+# LLM Integration
+requests>=2.31.0
+groq>=0.4.0
+huggingface_hub>=0.20.0
+

@@ -161,6 +161,15 @@ class Message:
             "toxic_score_info": {"TR": "Erkek arkadaşının toksiklik skoru: %{toxic_score}", "EN": "Your boyfriend's toxicity score is: {toxic_score}%"},
             "filter_viol_info": {"TR": "Genelde {avg_filter_violations} filtreye takılıyor erkekler.", "EN": "Generally, guys fail in {avg_filter_violations} filters."},
             "see_results": {"TR": "Sonucu gör", "EN": "See the result"},
+            "insights_header": {"TR": "AI İçgörüleri", "EN": "AI-Generated Insights"},
+            "generating_insights_msg": {
+                "TR": "Kişiselleştirilmiş içgörüler oluşturuluyor...",
+                "EN": "Generating personalized insights...",
+            },
+            "insights_unavailable_msg": {
+                "TR": "AI içgörüleri mevcut değil. LLM API yapılandırılmamış.",
+                "EN": "AI insights are not available. LLM API is not configured.",
+            },
         }
 
     def get(self, key, **kwargs):

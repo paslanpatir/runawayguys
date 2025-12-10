@@ -103,6 +103,10 @@ class SessionManager:
         if "gtk_response_obj" in self.state:
             del self.state.gtk_response_obj
         
+        # Reset AI insights
+        if "ai_insights" in self.state:
+            del self.state.ai_insights
+        
         # Reset data_saved flag so next survey can save
         self.state.data_saved = False
         

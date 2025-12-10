@@ -3,6 +3,7 @@ import streamlit as st
 from src.application.messages import Message
 from src.application.session_manager import SessionManager
 from src.application.survey_controller import SurveyController
+from src.utils.debug_helper import setup_mock_data_for_testing, is_debug_mode
 
 # import steps
 from src.application.steps.ask_language import AskLanguage
@@ -19,9 +20,16 @@ from src.application.steps.report_step import ReportStep
 from src.application.steps.goodbye_step import GoodbyeStep
 
 
-def main(DB_READ, DB_WRITE):
+def main(DB_READ, DB_WRITE, LLM_ENABLED=True):
     session = SessionManager()
     session.next_counter()
+
+    # DEBUG MODE: Set up mock data to skip to results page
+    if is_debug_mode() and "debug_data_set" not in st.session_state:
+        setup_mock_data_for_testing()
+        st.session_state.debug_data_set = True
+        st.info("🔧 DEBUG MODE: Mock data loaded. Jumping to results page...")
+        st.rerun()
 
     msg = Message(session.language)
     st.title(msg.get("survey_title"))
@@ -31,6 +39,9 @@ def main(DB_READ, DB_WRITE):
         st.session_state.db_read_allowed = DB_READ
     if "db_write_allowed" not in st.session_state:
         st.session_state.db_write_allowed = DB_WRITE
+    # Store LLM flag in session state so steps can access it
+    if "llm_enabled" not in st.session_state:
+        st.session_state.llm_enabled = LLM_ENABLED
 
     steps = [
         AskLanguage(),
