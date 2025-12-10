@@ -1,5 +1,6 @@
 import streamlit as st
 
+
 class ProgressManager:
     def __init__(self, steps):
         # Store the ordered list of step names

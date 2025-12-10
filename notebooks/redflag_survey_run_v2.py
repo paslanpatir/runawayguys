@@ -25,74 +25,7 @@ getcontext().prec = 5
 
 
 
-def welcome(name, language):
-    msg = Message(language)
-    st.markdown(msg.get_text("welcome_message", name=name))
-    st.markdown(msg.get_text("welcome_description"))
-    st.markdown(msg.get_text("welcome_instruction"))
-    
 
-
-def select_discrete_score_options(language):
-    msg= Message(language)
-    opts        = msg.get_text("limited_opt_answer")
-    yes_no_opts = msg.get_text("boolean_answer")
-        
-    return opts,yes_no_opts
-
-def get_filter_questions():
-    if "randomized_filters" not in st.session_state:
-        data = load_data(DB_READ, 'RedFlagFilters')
-        data = randomize_questions(data)
-        st.session_state.randomized_filters = data
-    
-    return st.session_state.randomized_filters
-
-
-def ask_filter_questions(data, language):
-    """
-    Ask the filter questions and collect responses.
-    """
-    msg = Message(language)
-    st.subheader(msg.get_text("filter_header"), divider=True)
-    
-    responses = {}
-    filter_violations = 0
-    
-    for index, row in data.iterrows():
-        question        = row[f"Filter_Question_{language}"]  # Get the question in the selected language
-        upper_limit     = row["Upper_Limit"]  # Get the upper limit for the response
-        scoring_type    = row['Scoring']
-
-        opts,yes_no_opts = select_discrete_score_options(language)
-
-        #print(f"filter Q: {row['Filter_ID']}, quetion: {question}")
-        print(f"{scoring_type=}")
-        print(f"{upper_limit=}")
-
-        
-        if scoring_type == "Limit":
-            # Map the selected option to a score
-            option_to_score = {opt: idx for idx, opt in enumerate(opts)}
-            respons_txt     = st.select_slider(f"{question}", options=opts, key=f"filter_{index}")
-            response        = option_to_score[respons_txt]
-        
-        elif scoring_type == "YES/NO":
-            response_txt    = st.radio(f"{question}", options=yes_no_opts, key=f"radio_{index}")
-            response        = 1 if response_txt == yes_no_opts[0] else 0  # Convert "Yes" or "Evet" to 1, else 0
-
-
-        # Store the response and check for violations
-        responses[f"F{row['Filter_ID']}"] = response
-        #print(f"{responses=}")
-        if response >= upper_limit:
-            filter_violations += 1
-
-        st.divider()
-
-    responses = dict(sorted(responses.items(), key=natural_sort_key))
-    print(f"{filter_violations=}")
-    return responses,filter_violations
 
 def get_redflag_questions():
     if "randomized_questions" not in st.session_state:
@@ -353,11 +286,6 @@ def present_result_report():
     # Display the plot in Streamlit
     if fig:
         st.pyplot(fig)
-
-
-def goodbye(name, language):
-    msg = Message(language)
-    st.success(msg.get_text("goodbye_message", name=name))
 
 
 def get_output_summary(DB_READ):

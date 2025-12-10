@@ -17,6 +17,7 @@ classifiers = [
 ]
 dependencies = [
     "awscli",
+    "boto3",
     "black",
     "flake8",
     "ipython",
@@ -31,6 +32,7 @@ dependencies = [
     "pytest",
     "python-dotenv",
     "scikit-learn",
+    "streamlit",
 ]
 requires-python = "~=3.10.0"
 

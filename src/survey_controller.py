@@ -1,5 +1,5 @@
 import streamlit as st
-from runawayguys.src.progress_manager import ProgressManager
+from src.progress_manager import ProgressManager
 
 
 class SurveyController:
@@ -15,7 +15,7 @@ class SurveyController:
             step = self.steps[current_idx]
 
             # show progress
-            self.progress_manager.show(step.name)
+            self.progress_manager.show_progress(step.name)
 
             # run step
             done = step.run()

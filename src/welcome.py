@@ -7,7 +7,6 @@ class Welcome(BaseStep):
     name = "welcome"
 
     def run(self):
-        language = self.session.user_details.get("language", "EN")
         name = self.session.user_details.get("name", "User")
 
         st.markdown(self.msg.get("welcome_message", name=name))

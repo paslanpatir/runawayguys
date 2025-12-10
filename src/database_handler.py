@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from runawayguys.src.connection_manager import ConnectionManager
+from src.connection_manager import ConnectionManager
 
 
 class DynamoDBHandler:

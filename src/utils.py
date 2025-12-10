@@ -27,3 +27,12 @@ def randomize_questions(data):
     data= data.sample(frac=1).reset_index(drop=True)
     print(f"data is randomized")
     return data
+
+
+def select_discrete_score_options(language):
+    from src.messages import Message
+    msg= Message(language)
+    opts        = msg.get("limited_opt_answer")
+    yes_no_opts = msg.get("boolean_answer")
+        
+    return opts,yes_no_opts
