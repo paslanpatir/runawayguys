@@ -44,6 +44,8 @@ class SessionManager:
             self.state.submitted = False
         if "new_survey_opt" not in self.state:
             self.state.new_survey_opt = False
+        if "report_sent" not in self.state:
+            self.state.report_sent = False
 
     # Convenience properties
     @property

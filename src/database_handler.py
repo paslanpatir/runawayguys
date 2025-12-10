@@ -23,10 +23,10 @@ class DynamoDBHandler:
         try:
             table = self.dynamodb.Table(table_name)
             table.put_item(Item=newdata_dict)
-            print(f"✅ Data written to DynamoDB: {table_name}")
+            print(f"[OK] Data written to DynamoDB: {table_name}")
             return True
         except Exception as e:
-            print(f"❌ Error writing to DynamoDB: {e}")
+            print(f"[ERROR] Error writing to DynamoDB: {e}")
             return False
 
     def update_record(self, table_name: str, key_dict: dict, update_dict: dict):
@@ -39,9 +39,9 @@ class DynamoDBHandler:
                 UpdateExpression=update_expression,
                 ExpressionAttributeValues=expression_attribute_values,
             )
-            print(f"✅ DynamoDB record updated in {table_name}")
+            print(f"[OK] DynamoDB record updated in {table_name}")
         except Exception as e:
-            print(f"❌ Error updating DynamoDB record: {e}")
+            print(f"[ERROR] Error updating DynamoDB record: {e}")
 
     def close(self):
         self.conn_manager.close()
@@ -74,7 +74,7 @@ class CSVHandler:
             updated_data = temp
 
         updated_data.to_csv(file_path, sep=";", index=False)
-        print(f"✅ Data saved to CSV: {file_path}")
+        print(f"[OK] Data saved to CSV: {file_path}")
         return True
 
     def update_record(self, table_name: str, key_dict: dict, update_dict: dict):
@@ -93,9 +93,9 @@ class CSVHandler:
             for k, v in update_dict.items():
                 df.loc[mask, k] = v
             df.to_csv(file_path, sep=";", index=False)
-            print(f"✅ Record updated in CSV: {file_path}")
+            print(f"[OK] Record updated in CSV: {file_path}")
         else:
-            print(f"⚠️ No matching record found in {file_path} for key {key_dict}")
+            print(f"[WARNING] No matching record found in {file_path} for key {key_dict}")
 
 class DatabaseHandler:
     def __init__(self, db_read_allowed=False, db_write_allowed=False):

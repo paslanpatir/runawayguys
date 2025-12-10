@@ -1,8 +1,17 @@
 # Data
 /data/
 
-# Config
-/config/
+# Config - ignore all secret files but keep example templates
+config/*.txt
+config/*.env
+config/*.key
+config/*.secret
+config/aws_credentials.txt
+config/email_credentials.txt
+config/.env
+# But keep example files and README
+!config/*.example.txt
+!config/README.md
 
 # Mac OS-specific storage files
 .DS_Store

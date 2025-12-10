@@ -20,20 +20,22 @@ class GoodbyeStep(BaseStep):
         st.markdown(msg.get("goodbye_message", name=name))
         st.balloons()
 
-        # Save data if write is allowed
-        if self.db_write_allowed:
-            self._save_all_data()
+        # Always save data - backend is chosen based on db_write_allowed flag
+        # If False, saves to CSV; if True, saves to DynamoDB
+        self._save_all_data()
 
         return True
 
     def _save_all_data(self):
-        """Save all session data to database."""
+        """Save all session data to database (CSV or DynamoDB based on flag)."""
+        # Always create handler - it will use CSV if db_write_allowed=False, DynamoDB if True
         db_handler = DatabaseHandler(db_write_allowed=self.db_write_allowed)
 
         try:
             # Save session responses
             if self.session.state.get("redflag_responses") and self.session.state.get("filter_responses"):
                 self._save_session_response(db_handler)
+                st.success(self.msg.get("response_saved_msg"))
 
             # Save GTK responses
             if self.session.state.get("extra_questions_responses"):
@@ -56,8 +58,16 @@ class GoodbyeStep(BaseStep):
         """Save main session response data."""
         user_id = self.session.user_details["user_id"]
         session_end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Get next ID by checking existing records
+        try:
+            existing = db_handler.load_table("session_responses")
+            next_id = len(existing) + 1 if not existing.empty else 1
+        except (FileNotFoundError, Exception):
+            next_id = 1
 
         newdata_dict = {
+            "id": next_id,
             "user_id": user_id,
             "name": self.session.user_details["name"],
             "email": self.session.user_details["email"],
@@ -66,6 +76,7 @@ class GoodbyeStep(BaseStep):
             "toxic_score": safe_decimal(self.session.state.get("toxic_score")),
             "filter_violations": safe_decimal(self.session.state.get("filter_violations", 0)),
             "session_start_time": self.session.state.get("session_start_time"),
+            "result_start_time": self.session.state.get("result_start_time"),
             "session_end_time": session_end_time,
             **{k: safe_decimal(v) for k, v in self.session.state.get("redflag_responses", {}).items()},
             **{k: safe_decimal(v) for k, v in self.session.state.get("filter_responses", {}).items()},
@@ -75,7 +86,15 @@ class GoodbyeStep(BaseStep):
 
     def _save_gtk_response(self, db_handler):
         """Save GetToKnow questions responses."""
+        # Get next ID by checking existing records
+        try:
+            existing = db_handler.load_table("session_gtk_responses")
+            next_id = len(existing) + 1 if not existing.empty else 1
+        except (FileNotFoundError, Exception):
+            next_id = 1
+
         newdata_dict = {
+            "id": next_id,
             "user_id": self.session.user_details["user_id"],
             "name": self.session.user_details["name"],
             "email": self.session.user_details["email"],
@@ -89,7 +108,15 @@ class GoodbyeStep(BaseStep):
 
     def _save_toxicity_rating(self, db_handler):
         """Save toxicity rating."""
+        # Get next ID by checking existing records
+        try:
+            existing = db_handler.load_table("session_toxicity_rating")
+            next_id = len(existing) + 1 if not existing.empty else 1
+        except (FileNotFoundError, Exception):
+            next_id = 1
+
         newdata_dict = {
+            "id": next_id,
             "user_id": self.session.user_details["user_id"],
             "name": self.session.user_details["name"],
             "email": self.session.user_details["email"],
@@ -103,7 +130,15 @@ class GoodbyeStep(BaseStep):
 
     def _save_feedback(self, db_handler):
         """Save feedback rating."""
+        # Get next ID by checking existing records
+        try:
+            existing = db_handler.load_table("session_feedback")
+            next_id = len(existing) + 1 if not existing.empty else 1
+        except (FileNotFoundError, Exception):
+            next_id = 1
+
         newdata_dict = {
+            "id": next_id,
             "user_id": self.session.user_details["user_id"],
             "user_name": self.session.user_details["name"],
             "email": self.session.user_details["email"],

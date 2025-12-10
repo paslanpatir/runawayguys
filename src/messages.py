@@ -120,11 +120,27 @@ class Message:
             "response_saved_msg": {"TR": "Yanıtlarınız başarıyla kaydedildi.", "EN": "Responses saved successfully!"},
             "response_error_msg": {"TR": "Yanıtlarınız kaydedilirken hata oluştu: {e}", "EN": "Error saving responses: {e}"},
             "enter_details_msg": {"TR": "Lütfen bilgilerinizi girin:", "EN": "Please enter your details:"},
+            "want_email_results_msg": {
+                "TR": "Sonuçları e-posta ile almak ister misiniz?",
+                "EN": "Would you like to receive the results via email?",
+            },
+            "enter_email_if_yes_msg": {
+                "TR": "Lütfen e-posta adresinizi girin:",
+                "EN": "Please enter your email address:",
+            },
             "enter_valid_email_msg": {
                 "TR": "Lütfen geçerli bir e-posta adresi girin (örneğin, ornek@alanadi.com).",
                 "EN": "Please enter a valid email address (e.g., example@domain.com).",
             },
             "enter_name_msg": {"TR": "Lütfen adınızı girin.", "EN": "Please enter your name."},
+            "report_sent_msg": {
+                "TR": "Raporunuz e-posta ile gönderildi!",
+                "EN": "Your report has been sent via email!",
+            },
+            "report_skipped_msg": {
+                "TR": "E-posta gönderimi atlandı.",
+                "EN": "Email sending skipped.",
+            },
             "enter_bf_name_msg": {"TR": "Lütfen erkek arkadaşınızın adını girin:", "EN": "Please enter your boyfriend's name:"},
             "enter_feedback_msg": {"TR": "Lütfen geri bildirim verin :gift_heart:", "EN": "Please provide feedback :gift_heart:"},
             "toxicity_header": {

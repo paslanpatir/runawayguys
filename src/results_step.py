@@ -1,5 +1,6 @@
 """Results step - displays survey results."""
 import streamlit as st
+import pandas as pd
 from decimal import Decimal
 from src.base_step import BaseStep
 from src.database_handler import DatabaseHandler
@@ -23,6 +24,9 @@ class ResultsStep(BaseStep):
 
         # Load summary data
         self._load_summary_data()
+
+        # Show balloons when results page is displayed
+        st.balloons()
 
         st.subheader(msg.get("result_header"), divider=True)
 
@@ -89,8 +93,12 @@ class ResultsStep(BaseStep):
         self._show_toxic_graph()
 
     def _show_toxic_graph(self):
-        """Show toxicity comparison graph."""
+        """Show toxicity comparison graph using plotnine."""
         try:
+            import numpy as np
+            from decimal import Decimal, ROUND_HALF_UP
+            from plotnine import ggplot, aes, geom_point, labs, theme_minimal
+
             language = self.session.user_details.get("language") or "EN"
             msg = self.msg
 
@@ -101,10 +109,60 @@ class ResultsStep(BaseStep):
                 return
 
             toxic_score = self.session.state.get("toxic_score", 0)
-            if toxic_score:
-                # Simple visualization - could be enhanced with plotnine/matplotlib
-                st.write(msg.get("toxic_graph_guy_cnt", guy_cnt=len(session_responses)))
+            if not toxic_score:
+                return
+
+            # Prepare the data - get last 20 entries
+            temp = session_responses[["id", "toxic_score"]].tail(20).copy()
+
+            if temp.empty:
+                return
+
+            # Add current user's score with id=0 as marker
+            temp.loc[-1] = [0, toxic_score]
+            boyfriend_name = self.session.user_details.get("bf_name", "Your guy")
+
+            # Create flag column and guys column
+            temp.loc[:, "FLAG"] = np.where(temp["id"] == 0, 1, 0)
+            temp.loc[:, "guys"] = "others"
+            temp.loc[temp["FLAG"] == 1, "guys"] = boyfriend_name
+
+            # Sort by toxic_score and reset index
+            temp = temp.sort_values("toxic_score").reset_index(drop=True).reset_index()
+
+            # Round toxic_score to 2 decimal places
+            if "toxic_score" in temp.columns:
+                temp["toxic_score"] = temp["toxic_score"].apply(
+                    lambda x: Decimal(str(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    if pd.notna(x) else Decimal("0")
+                )
+
+            guy_cnt = len(temp)
+
+            st.markdown(msg.get("toxic_graph_guy_cnt", guy_cnt=guy_cnt))
+            st.markdown(msg.get("toxic_graph_msg"))
+
+            # Create the plot using plotnine
+            from plotnine import theme_minimal
+
+            p = (
+                ggplot(temp, aes(x="index", y="toxic_score", color="guys"))
+                + geom_point()  # Scatter plot with color based on frequency
+                + labs(
+                    title="",
+                    x=msg.get("toxic_graph_x"),
+                    y=msg.get("toxic_graph_y"),
+                )
+                + theme_minimal()
+            )
+
+            # Convert the plotnine plot to a matplotlib figure and display
+            fig = p.draw()
+            st.pyplot(fig)
+
+        except ImportError:
+            st.warning("plotnine is not installed. Install it with: pip install plotnine")
         except Exception as e:
             # Silently fail if graph can't be shown
-            pass
+            st.debug(f"Could not show graph: {e}")
 

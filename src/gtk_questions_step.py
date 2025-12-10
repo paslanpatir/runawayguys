@@ -29,7 +29,10 @@ class GTKQuestionsStep(BaseStep):
         return st.session_state.gtk_questions
 
     def run(self):
-        db_handler = DatabaseHandler()
+        import streamlit as st
+        # Use DB_READ flag from session state if available, otherwise default to CSV (False)
+        db_read_allowed = st.session_state.get("db_read_allowed", False)
+        db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
         gtk_questions = self.get_questions(db_handler)
 
         if gtk_questions is None or gtk_questions.empty:

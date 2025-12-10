@@ -18,9 +18,9 @@ class ConnectionManager:
         region_name = os.getenv("AWS_DEFAULT_REGION")
 
         if access_code and secret_key and region_name:
-            print("✅ Running in app service (env credentials found)")
+            print("[OK] Running in app service (env credentials found)")
         else:
-            print("ℹ️ Running locally, looking for credentials in file")
+            print("[INFO] Running locally, looking for credentials in file")
             try:
                 with open(self.secret_file, "r") as file:
                     access_code = file.readline().strip()
@@ -48,11 +48,11 @@ class ConnectionManager:
             region_name=self.region_name
         )
         self.dynamodb = self.session.resource("dynamodb")
-        print("✅ AWS DynamoDB connection established")
+        print("[OK] AWS DynamoDB connection established")
         return self.dynamodb
 
     def close(self):
         """Close the session and release resources."""
         self.session = None
         self.dynamodb = None
-        print("🔌 AWS DynamoDB connection closed")
+        print("[CLOSED] AWS DynamoDB connection closed")

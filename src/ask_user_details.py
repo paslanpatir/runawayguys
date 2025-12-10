@@ -13,20 +13,28 @@ class AskUserDetails(BaseStep):
 
         with st.form("user_details_form"):
             name = st.text_input(msg.get("name_input"), key="name_input")
-            email = st.text_input(msg.get("email_input"), key="email_input")
+            # Email is optional - if provided, results will be sent via email
+            email = st.text_input(
+                msg.get("email_input") + " (Optional)",
+                key="email_input"
+            )
 
             if st.form_submit_button(msg.get("continue_msg")):
                 if name:
-                    if email and is_valid_email(email):
-                        self.session.user_details["name"] = name
-                        self.session.user_details["email"] = email
-                        st.rerun()
+                    # If email is provided, validate it
+                    if email:
+                        if is_valid_email(email):
+                            self.session.user_details["name"] = name
+                            self.session.user_details["email"] = email
+                            st.rerun()
+                        else:
+                            st.error(msg.get("enter_valid_email_msg"))
                     else:
-                        st.error(msg.get("enter_valid_email_msg"))
+                        # No email provided, just save name
+                        self.session.user_details["name"] = name
+                        self.session.user_details["email"] = None
+                        st.rerun()
                 else:
                     st.error(msg.get("enter_name_msg"))
 
-        return (
-            self.session.user_details.get("name") is not None
-            and self.session.user_details.get("email") is not None
-        )
+        return self.session.user_details.get("name") is not None

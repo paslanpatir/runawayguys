@@ -20,7 +20,10 @@ class RedFlagQuestionsStep(BaseStep):
         return st.session_state.randomized_questions
 
     def run(self):
-        db_handler = DatabaseHandler()
+        import streamlit as st
+        # Use DB_READ flag from session state if available, otherwise default to CSV (False)
+        db_read_allowed = st.session_state.get("db_read_allowed", False)
+        db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
         questions = self.get_questions(db_handler)
 
         if questions is None or questions.empty:

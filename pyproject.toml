@@ -29,6 +29,7 @@ dependencies = [
     "numpy",
     "pandas",
     "pip",
+    "plotnine",
     "pytest",
     "python-dotenv",
     "scikit-learn",
