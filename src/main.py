@@ -1,8 +1,10 @@
 """Main entry point for the Streamlit survey application."""
 import streamlit as st
+from decimal import Decimal
 from src.application.messages import Message
 from src.application.session_manager import SessionManager
 from src.application.survey_controller import SurveyController
+from src.adapters.database.database_handler import DatabaseHandler
 from src.utils.debug_helper import setup_mock_data_for_testing, is_debug_mode
 
 # import steps
@@ -42,6 +44,11 @@ def main(DB_READ, DB_WRITE, LLM_ENABLED=True):
     # Store LLM flag in session state so steps can access it
     if "llm_enabled" not in st.session_state:
         st.session_state.llm_enabled = LLM_ENABLED
+    
+    # Load summary statistics at app start (only once)
+    if "summary_loaded" not in st.session_state:
+        _load_summary_statistics(DB_READ, session)
+        st.session_state.summary_loaded = True
 
     steps = [
         AskLanguage(),
@@ -61,3 +68,55 @@ def main(DB_READ, DB_WRITE, LLM_ENABLED=True):
     controller = SurveyController(steps)
     # Progress bar is shown inside controller.run() before each step
     controller.run()
+
+
+def _load_summary_statistics(DB_READ, session):
+    """Load summary statistics from Summary_Sessions table at app start."""
+    try:
+        db_handler = DatabaseHandler(db_read_allowed=DB_READ)
+        summary = db_handler.load_table("Summary_Sessions")
+        
+        if not summary.empty:
+            row = summary.iloc[0]
+            session.state["sum_toxic_score"] = Decimal(str(row.get("sum_toxic_score", 0)))
+            session.state["max_toxic_score"] = Decimal(str(row.get("max_toxic_score", 0)))
+            session.state["min_toxic_score"] = Decimal(str(row.get("min_toxic_score", 0)))
+            session.state["avg_toxic_score"] = Decimal(str(row.get("avg_toxic_score", 0)))
+            session.state["sum_filter_violations"] = row.get("sum_filter_violations", 0)
+            session.state["avg_filter_violations"] = row.get("avg_filter_violations", 0)
+            session.state["count_guys"] = row.get("count_guys", 0)
+            session.state["max_id_session_responses"] = row.get("max_id_session_responses", 0)
+            session.state["max_id_gtk_responses"] = row.get("max_id_gtk_responses", 0)
+            session.state["max_id_feedback"] = row.get("max_id_feedback", 0)
+            session.state["max_id_session_toxicity_rating"] = row.get("max_id_session_toxicity_rating", 0)
+            print(f"[OK] Summary statistics loaded. avg_toxic_score: {session.state['avg_toxic_score']}")
+        else:
+            # Initialize with defaults if table is empty
+            session.state["sum_toxic_score"] = Decimal("0")
+            session.state["max_toxic_score"] = Decimal("0")
+            session.state["min_toxic_score"] = Decimal("1")
+            session.state["avg_toxic_score"] = Decimal("0.5")
+            session.state["sum_filter_violations"] = 0
+            session.state["avg_filter_violations"] = 0
+            session.state["count_guys"] = 0
+            session.state["max_id_session_responses"] = 0
+            session.state["max_id_gtk_responses"] = 0
+            session.state["max_id_feedback"] = 0
+            session.state["max_id_session_toxicity_rating"] = 0
+            print("[WARNING] Summary_Sessions table is empty. Using default values.")
+        
+        db_handler.close()
+    except (FileNotFoundError, Exception) as e:
+        print(f"[WARNING] Could not load summary statistics: {e}")
+        # Set defaults on error (table doesn't exist yet or other error)
+        session.state["sum_toxic_score"] = Decimal("0")
+        session.state["max_toxic_score"] = Decimal("0")
+        session.state["min_toxic_score"] = Decimal("1")
+        session.state["avg_toxic_score"] = Decimal("0.5")
+        session.state["sum_filter_violations"] = 0
+        session.state["avg_filter_violations"] = 0
+        session.state["count_guys"] = 0
+        session.state["max_id_session_responses"] = 0
+        session.state["max_id_gtk_responses"] = 0
+        session.state["max_id_feedback"] = 0
+        session.state["max_id_session_toxicity_rating"] = 0

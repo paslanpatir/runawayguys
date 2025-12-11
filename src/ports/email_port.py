@@ -1,5 +1,6 @@
 """Port (interface) for email operations."""
 from abc import ABC, abstractmethod
+from typing import Optional, List, Tuple
 
 
 class EmailPort(ABC):
@@ -12,11 +13,28 @@ class EmailPort(ABC):
         user_name: str,
         bf_name: str,
         toxic_score: float,
+        avg_toxic_score: float,
         filter_violations: int,
+        violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         language: str = "EN",
         insights: str = None,
+        toxic_plot_image: Optional[bytes] = None,
     ) -> bool:
-        """Send a survey report email."""
+        """
+        Send a survey report email.
+        
+        Args:
+            recipient_email: Email address to send to
+            user_name: Name of the user
+            bf_name: Boyfriend's name
+            toxic_score: Toxicity score (0-1)
+            avg_toxic_score: Average toxicity score from all users (0-1)
+            filter_violations: Number of filter violations
+            violated_filter_questions: List of violated filter questions (question_text, answer, filter_id)
+            language: Language code (TR or EN)
+            insights: AI-generated insights (optional)
+            toxic_plot_image: PNG image bytes for toxic plot (optional)
+        """
         pass
 
     @abstractmethod

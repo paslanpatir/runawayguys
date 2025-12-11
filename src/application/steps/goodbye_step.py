@@ -1,5 +1,6 @@
 """Goodbye step - wrapper for Goodbye with DB write capability."""
 import streamlit as st
+from decimal import Decimal
 from src.application.base_step import BaseStep
 from src.adapters.database.database_handler import DatabaseHandler
 from src.domain.value_objects import (
@@ -67,6 +68,10 @@ class GoodbyeStep(BaseStep):
             # Save feedback
             if self.session.state.get("feedback_rating"):
                 self._save_feedback(db_handler)
+            
+            # Update Summary_Sessions table after saving all data
+            if self.session.state.get("redflag_responses") and self.session.state.get("filter_responses"):
+                self._update_summary_statistics(db_handler)
 
             db_handler.close()
         except Exception as e:
@@ -207,3 +212,121 @@ class GoodbyeStep(BaseStep):
 
         # Convert to dict and save
         db_handler.add_record("session_feedback", feedback.to_dict())
+    
+    def _update_summary_statistics(self, db_handler):
+        """Update Summary_Sessions table with new session data."""
+        try:
+            # Get current values from session state (loaded at app start)
+            cur_toxic_score = Decimal(str(self.session.state.get("toxic_score", 0)))
+            cur_filter_violations = int(self.session.state.get("filter_violations", 0))
+            
+            # Get existing summary values (with defaults if not set)
+            sum_toxic_score = Decimal(str(self.session.state.get("sum_toxic_score", 0)))
+            max_toxic_score = Decimal(str(self.session.state.get("max_toxic_score", 0)))
+            min_toxic_score = Decimal(str(self.session.state.get("min_toxic_score", 1)))
+            count_guys = int(self.session.state.get("count_guys", 0))
+            sum_filter_violations = int(self.session.state.get("sum_filter_violations", 0))
+            
+            # Update values
+            sum_toxic_score = sum_toxic_score + cur_toxic_score
+            count_guys = count_guys + 1
+            avg_toxic_score = Decimal("1.0") * sum_toxic_score / Decimal(str(count_guys))
+            
+            # Update max and min toxic scores
+            if max_toxic_score < cur_toxic_score:
+                max_toxic_score = cur_toxic_score
+            if min_toxic_score > cur_toxic_score:
+                min_toxic_score = cur_toxic_score
+            
+            # Update filter violations
+            sum_filter_violations = sum_filter_violations + cur_filter_violations
+            avg_filter_violations = Decimal("1.0") * Decimal(str(sum_filter_violations)) / Decimal(str(count_guys))
+            
+            # Get max IDs from session state
+            max_id_session_responses = int(self.session.state.get("max_id_session_responses", 0))
+            max_id_gtk_responses = int(self.session.state.get("max_id_gtk_responses", 0))
+            max_id_feedback = int(self.session.state.get("max_id_feedback", 0))
+            max_id_session_toxicity_rating = int(self.session.state.get("max_id_session_toxicity_rating", 0))
+            
+            # Update max IDs by checking actual records
+            try:
+                session_responses = db_handler.load_table("session_responses")
+                if not session_responses.empty and "id" in session_responses.columns:
+                    max_id_session_responses = max(max_id_session_responses, int(session_responses["id"].max()))
+            except:
+                pass
+            
+            try:
+                gtk_responses = db_handler.load_table("session_gtk_responses")
+                if not gtk_responses.empty and "id" in gtk_responses.columns:
+                    max_id_gtk_responses = max(max_id_gtk_responses, int(gtk_responses["id"].max()))
+            except:
+                pass
+            
+            try:
+                feedback = db_handler.load_table("session_feedback")
+                if not feedback.empty and "id" in feedback.columns:
+                    max_id_feedback = max(max_id_feedback, int(feedback["id"].max()))
+            except:
+                pass
+            
+            try:
+                toxicity_rating = db_handler.load_table("session_toxicity_rating")
+                if not toxicity_rating.empty and "id" in toxicity_rating.columns:
+                    max_id_session_toxicity_rating = max(max_id_session_toxicity_rating, int(toxicity_rating["id"].max()))
+            except:
+                pass
+            
+            last_date = self.session.state.get("session_start_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            
+            # Prepare update dictionary
+            update_dict = {
+                "sum_toxic_score": float(sum_toxic_score),
+                "max_toxic_score": float(max_toxic_score),
+                "min_toxic_score": float(min_toxic_score),
+                "avg_toxic_score": float(avg_toxic_score),
+                "sum_filter_violations": sum_filter_violations,
+                "avg_filter_violations": float(avg_filter_violations),
+                "count_guys": count_guys,
+                "max_id_session_responses": max_id_session_responses,
+                "max_id_gtk_responses": max_id_gtk_responses,
+                "max_id_feedback": max_id_feedback,
+                "max_id_session_toxicity_rating": max_id_session_toxicity_rating,
+                "last_update_date": last_date,
+            }
+            
+            # Check if Summary_Sessions table exists and has a record
+            try:
+                summary = db_handler.load_table("Summary_Sessions")
+                if summary.empty:
+                    # Create initial record
+                    update_dict["summary_id"] = 1
+                    db_handler.add_record("Summary_Sessions", update_dict)
+                    print("[OK] Created initial Summary_Sessions record")
+                else:
+                    # Update existing record (summary_id = 1)
+                    db_handler.update_record("Summary_Sessions", {"summary_id": 1}, update_dict)
+                    print(f"[OK] Updated Summary_Sessions. New avg_toxic_score: {float(avg_toxic_score):.4f}")
+            except (FileNotFoundError, Exception) as e:
+                # Table doesn't exist or error loading, create it
+                update_dict["summary_id"] = 1
+                db_handler.add_record("Summary_Sessions", update_dict)
+                print(f"[OK] Created Summary_Sessions table with initial record (error: {e})")
+            
+            # Update session state with new values
+            self.session.state["sum_toxic_score"] = sum_toxic_score
+            self.session.state["max_toxic_score"] = max_toxic_score
+            self.session.state["min_toxic_score"] = min_toxic_score
+            self.session.state["avg_toxic_score"] = avg_toxic_score
+            self.session.state["sum_filter_violations"] = sum_filter_violations
+            self.session.state["avg_filter_violations"] = avg_filter_violations
+            self.session.state["count_guys"] = count_guys
+            self.session.state["max_id_session_responses"] = max_id_session_responses
+            self.session.state["max_id_gtk_responses"] = max_id_gtk_responses
+            self.session.state["max_id_feedback"] = max_id_feedback
+            self.session.state["max_id_session_toxicity_rating"] = max_id_session_toxicity_rating
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to update Summary_Sessions: {e}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")

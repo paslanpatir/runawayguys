@@ -1,7 +1,9 @@
 """Email adapter implementation using SMTP."""
 import smtplib
+import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from typing import Optional, List, Tuple
 from src.infrastructure.email_connection_manager import EmailConnectionManager
 from src.ports.email_port import EmailPort
 
@@ -25,9 +27,12 @@ class EmailAdapter(EmailPort):
         user_name: str,
         bf_name: str,
         toxic_score: float,
+        avg_toxic_score: float,
         filter_violations: int,
+        violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         language: str = "EN",
         insights: str = None,
+        toxic_plot_image: Optional[bytes] = None,
     ) -> bool:
         """
         Send survey results report via email.
@@ -37,8 +42,12 @@ class EmailAdapter(EmailPort):
             user_name: Name of the user
             bf_name: Boyfriend's name
             toxic_score: Toxicity score (0-1)
+            avg_toxic_score: Average toxicity score from all users (0-1)
             filter_violations: Number of filter violations
+            violated_filter_questions: List of violated filter questions
             language: Language code (TR or EN)
+            insights: AI-generated insights (optional)
+            toxic_plot_image: PNG image bytes for toxic plot (optional)
             
         Returns:
             True if email sent successfully, False otherwise
@@ -56,7 +65,8 @@ class EmailAdapter(EmailPort):
 
             # Create email body
             body = self._create_email_body(
-                user_name, bf_name, toxic_score, filter_violations, language, insights
+                user_name, bf_name, toxic_score, avg_toxic_score,
+                filter_violations, violated_filter_questions, language, insights, toxic_plot_image
             )
             msg.attach(MIMEText(body, "html"))
 
@@ -88,12 +98,52 @@ class EmailAdapter(EmailPort):
         user_name: str,
         bf_name: str,
         toxic_score: float,
+        avg_toxic_score: float,
         filter_violations: int,
-        language: str,
+        violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
+        language: str = "EN",
         insights: str = None,
+        toxic_plot_image: Optional[bytes] = None,
     ) -> str:
         """Create HTML email body with survey results and insights."""
         score_percentage = round(toxic_score * 100, 1)
+        avg_score_percentage = round(avg_toxic_score * 100, 1)
+        
+        # Format violated filter questions
+        violated_filters_html = ""
+        if violated_filter_questions:
+            if language == "TR":
+                violated_filters_html = "<h4 style='margin-top: 10px;'>İhlal Edilen Filtreler:</h4><ul style='margin-top: 5px;'>"
+                for question_text, answer, f_id in violated_filter_questions:
+                    violated_filters_html += f"<li>{question_text}</li>"
+                violated_filters_html += "</ul>"
+            else:
+                violated_filters_html = "<h4 style='margin-top: 10px;'>Violated Filters:</h4><ul style='margin-top: 5px;'>"
+                for question_text, answer, f_id in violated_filter_questions:
+                    violated_filters_html += f"<li>{question_text}</li>"
+                violated_filters_html += "</ul>"
+        
+        # Format plot image
+        plot_html = ""
+        if toxic_plot_image:
+            print(f"[DEBUG] Email - toxic_plot_image received: {len(toxic_plot_image)} bytes")
+            # Convert image to base64 for embedding
+            plot_base64 = base64.b64encode(toxic_plot_image).decode('utf-8')
+            print(f"[DEBUG] Email - plot_base64 length: {len(plot_base64)} characters")
+            if language == "TR":
+                plot_html = f"""
+                        <div style="margin: 20px 0;">
+                            <h3 style="margin-top: 0;">📈 Toksisite Karşılaştırması</h3>
+                            <img src="data:image/png;base64,{plot_base64}" alt="Toxicity Comparison Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px;" />
+                        </div>
+                """
+            else:
+                plot_html = f"""
+                        <div style="margin: 20px 0;">
+                            <h3 style="margin-top: 0;">📈 Toxicity Comparison</h3>
+                            <img src="data:image/png;base64,{plot_base64}" alt="Toxicity Comparison Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px;" />
+                        </div>
+                """
         
         # Format insights for HTML
         insights_html = ""
@@ -125,8 +175,11 @@ class EmailAdapter(EmailPort):
                         <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
                             <h3 style="margin-top: 0;">📊 Sonuçlar</h3>
                             <p><strong>Toksiklik Skoru:</strong> {score_percentage}%</p>
+                            <p><strong>Ortalama Toksisite Skoru:</strong> {avg_score_percentage}%</p>
                             <p><strong>Filtre İhlalleri:</strong> {filter_violations}</p>
+                            {violated_filters_html}
                         </div>
+                        {plot_html}
                         {insights_html}
                         <p>Detaylı rapor ve grafikler için web sitesini ziyaret edebilirsiniz.</p>
                         
@@ -149,8 +202,11 @@ class EmailAdapter(EmailPort):
                         <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
                             <h3 style="margin-top: 0;">📊 Results</h3>
                             <p><strong>Toxicity Score:</strong> {score_percentage}%</p>
+                            <p><strong>Average Toxicity Score:</strong> {avg_score_percentage}%</p>
                             <p><strong>Filter Violations:</strong> {filter_violations}</p>
+                            {violated_filters_html}
                         </div>
+                        {plot_html}
                         {insights_html}
                         <p>Visit our website for detailed reports and graphs.</p>
                         
@@ -188,16 +244,22 @@ def send_survey_report(
     
     user_details = session_data.get("user_details", {})
     toxic_score = session_data.get("toxic_score", 0)
+    avg_toxic_score = session_data.get("avg_toxic_score", 0.5)
     filter_violations = session_data.get("filter_violations", 0)
+    violated_filter_questions = session_data.get("violated_filter_questions")
     insights = session_data.get("ai_insights")
+    toxic_plot_image = session_data.get("toxic_plot_image")
     
     return sender.send_report(
         recipient_email=recipient_email,
         user_name=user_details.get("name", "User"),
         bf_name=user_details.get("bf_name", "Your boyfriend"),
         toxic_score=toxic_score,
+        avg_toxic_score=avg_toxic_score,
         filter_violations=filter_violations,
+        violated_filter_questions=violated_filter_questions,
         language=language,
         insights=insights,
+        toxic_plot_image=toxic_plot_image,
     )
 
