@@ -73,15 +73,16 @@ class ReportStep(BaseStep):
             except Exception as e:
                 print(f"[WARNING] Could not calculate category scores for email: {e}")
             
-            # Prepare email data
+            # Prepare email data - send_survey_report expects user_details dict
             email_data = {
-                "user_name": self.session.user_details.get("name", "User"),
-                "boyfriend_name": self.session.user_details.get("bf_name", "Your boyfriend"),
+                "user_details": {
+                    "name": self.session.user_details.get("name", "User"),
+                    "bf_name": self.session.user_details.get("bf_name", "Your boyfriend"),
+                },
                 "toxic_score": float(self.session.state.get("toxic_score", 0)),
                 "avg_toxic_score": float(avg_toxic_score_decimal),
                 "filter_violations": self.session.state.get("filter_violations", 0),
                 "violated_filter_questions": violated_filter_questions,
-                "language": language,
                 "category_scores": category_scores,
             }
             
@@ -92,38 +93,32 @@ class ReportStep(BaseStep):
                     email_data["ai_insights"] = ai_insights
             
             # Send email
-            success = send_survey_report(email, email_data)
+            success = send_survey_report(email, email_data, language)
             
             if success:
                 st.success(msg.get("report_sent_to_msg", email=email))
                 self.session.state["report_sent"] = True
-                
-                # Wait for user to acknowledge before proceeding
-                if not self.session.state.get("report_acknowledged"):
-                    if st.button(msg.get("continue_msg")):
-                        self.session.state["report_acknowledged"] = True
-                        st.rerun()
-                    return False  # Stay on report step until acknowledged
             else:
                 st.warning("Email could not be sent. Please check your email configuration.")
                 self.session.state["report_sent"] = False
-                # Still allow user to continue even if email failed
-                if not self.session.state.get("report_acknowledged"):
-                    if st.button(msg.get("continue_msg")):
-                        self.session.state["report_acknowledged"] = True
-                        st.rerun()
-                    return False
-        else:
-            # No email requested, skip
-            self.session.state["report_sent"] = False
-            st.info(msg.get("report_skipped_msg"))
-            
-            # Still show a continue button for consistency
-            if not self.session.state.get("report_acknowledged"):
-                if st.button(msg.get("continue_msg")):
-                    self.session.state["report_acknowledged"] = True
-                    st.rerun()
-                return False
         
-        # After acknowledgment, proceed to next step
-        return True
+        # Show goodbye message (merged from GoodbyeStep)
+        name = self.session.user_details.get("name", "User")
+        st.divider()
+        st.markdown(msg.get("goodbye_message", name=name))
+        st.balloons()
+        
+        # Show contact information
+        st.divider()
+        st.info(msg.get("contact_email_info_msg"))
+        
+        # Show option to start a new survey
+        st.divider()
+        button_text = msg.get("start_new_survey")
+        if st.button(button_text):
+            # Reset survey states but keep user_id and name
+            self.session.reset_for_new_survey()
+            st.rerun()
+        
+        # Don't return True immediately - stay on this page until user clicks "Start New Survey"
+        return False

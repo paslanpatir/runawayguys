@@ -38,8 +38,10 @@ class ResultsStep(BaseStep):
         # Load summary data
         self._load_summary_data()
 
-        # Show balloons when results page is displayed
-        st.balloons()
+        # Show balloons only once when results page is first displayed
+        if "results_balloons_shown" not in self.session.state:
+            st.balloons()
+            self.session.state["results_balloons_shown"] = True
 
         st.subheader(msg.get("result_header"), divider=True)
 

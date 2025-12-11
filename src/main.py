@@ -19,7 +19,6 @@ from src.application.steps.toxicity_opinion_step import ToxicityOpinionStep
 from src.application.steps.results_step import ResultsStep
 from src.application.steps.feedback_step import FeedbackStep
 from src.application.steps.report_step import ReportStep
-from src.application.steps.goodbye_step import GoodbyeStep
 
 
 def main(DB_READ, DB_WRITE, LLM_ENABLED=True):
@@ -61,8 +60,7 @@ def main(DB_READ, DB_WRITE, LLM_ENABLED=True):
         ToxicityOpinionStep(),
         ResultsStep(DB_READ, DB_WRITE),
         FeedbackStep(DB_WRITE),
-        ReportStep(),
-        GoodbyeStep(),
+        ReportStep(),  # Now includes goodbye message
     ]
 
     controller = SurveyController(steps)
