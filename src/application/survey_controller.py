@@ -20,8 +20,8 @@ class SurveyController:
 
             # Show current step in terminal
             step_names = [
-                "Language Selection", "User Details", "Boyfriend Name", "Welcome",
-                "Filter Questions", "RedFlag Questions", "GTK Questions", 
+                "Language Selection", "User Details", "Boyfriend Name", "Welcome & GTK Questions",
+                "Filter Questions", "RedFlag Questions", 
                 "Toxicity Opinion", "Results", "Feedback", "Report"
             ]
             step_name = step_names[current_idx] if current_idx < len(step_names) else step.name
