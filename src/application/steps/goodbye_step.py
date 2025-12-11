@@ -35,6 +35,10 @@ class GoodbyeStep(BaseStep):
             self._save_all_data()
             self.session.state["data_saved"] = True
 
+        # Show contact information
+        st.divider()
+        st.info(msg.get("contact_email_info_msg"))
+
         # Show option to start a new survey
         st.divider()
         button_text = msg.get("start_new_survey")

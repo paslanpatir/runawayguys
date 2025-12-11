@@ -158,6 +158,10 @@ class EmailAdapter(EmailPort):
                         {insights_html}
                         <p>Detaylı rapor ve grafikler için web sitesini ziyaret edebilirsiniz.</p>
                         
+                        <p style="margin-top: 20px; color: #333; font-size: 14px;">
+                            💬 Herhangi bir görüş veya isteğiniz için <a href="mailto:runawayguysapp@gmail.com" style="color: #1976d2;">runawayguysapp@gmail.com</a> adresine e-posta gönderebilirsiniz.
+                        </p>
+                        
                         <p style="margin-top: 30px; color: #666; font-size: 12px;">
                             Bu e-posta otomatik olarak gönderilmiştir. Lütfen yanıtlamayın.
                         </p>
@@ -183,6 +187,10 @@ class EmailAdapter(EmailPort):
                         </div>
                         {insights_html}
                         <p>Visit our website for detailed reports and graphs.</p>
+                        
+                        <p style="margin-top: 20px; color: #333; font-size: 14px;">
+                            💬 For any opinions or requests, you can send an email to <a href="mailto:runawayguysapp@gmail.com" style="color: #1976d2;">runawayguysapp@gmail.com</a>.
+                        </p>
                         
                         <p style="margin-top: 30px; color: #666; font-size: 12px;">
                             This email was sent automatically. Please do not reply.
