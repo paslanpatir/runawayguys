@@ -32,6 +32,10 @@ class DatabaseHandler:
         """Update an existing record in a table."""
         return self.backend.update_record(table_name, key_dict, update_dict)
 
+    def delete_record(self, table_name: str, record_id: int, id_column: str = "id") -> bool:
+        """Delete a record from a table by ID."""
+        return self.backend.delete_record(table_name, record_id, id_column)
+
     def close(self):
         """Close the database connection."""
         self.backend.close()

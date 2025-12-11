@@ -22,6 +22,20 @@ class DatabasePort(ABC):
         pass
 
     @abstractmethod
+    def delete_record(self, table_name: str, record_id: int, id_column: str = "id") -> bool:
+        """Delete a record from a table by ID.
+        
+        Args:
+            table_name: Name of the table
+            record_id: ID of the record to delete
+            id_column: Name of the ID column (default: "id")
+            
+        Returns:
+            True if record was deleted, False otherwise
+        """
+        pass
+
+    @abstractmethod
     def close(self) -> None:
         """Close the database connection."""
         pass

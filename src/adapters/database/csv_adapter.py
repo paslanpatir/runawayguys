@@ -77,6 +77,32 @@ class CSVAdapter(DatabasePort):
         else:
             print(f"[WARNING] No matching record found in {file_path} for key {key_dict}")
 
+    def delete_record(self, table_name: str, record_id: int, id_column: str = "id") -> bool:
+        """Delete a record from CSV by ID."""
+        file_path = os.path.join(self.data_dir, f"{table_name}.csv")
+        if not os.path.exists(file_path):
+            print(f"[WARNING] CSV file not found: {file_path}")
+            return False
+
+        df = pd.read_csv(file_path, sep=";")
+        
+        if id_column not in df.columns:
+            print(f"[WARNING] Column '{id_column}' not found in {table_name}")
+            return False
+
+        # Find and delete the record
+        initial_count = len(df)
+        df = df[df[id_column] != record_id]
+        deleted_count = initial_count - len(df)
+
+        if deleted_count > 0:
+            df.to_csv(file_path, sep=";", index=False)
+            print(f"[OK] Deleted record with {id_column}={record_id} from {table_name}")
+            return True
+        else:
+            print(f"[WARNING] No record found with {id_column}={record_id} in {table_name}")
+            return False
+
     def close(self) -> None:
         """No-op for CSV adapter."""
         pass

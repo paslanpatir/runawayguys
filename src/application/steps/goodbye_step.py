@@ -98,16 +98,18 @@ class GoodbyeStep(BaseStep):
 
         session_end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Get next ID by checking existing records
-        try:
-            existing = db_handler.load_table("session_responses")
-            next_id = len(existing) + 1 if not existing.empty else 1
-        except (FileNotFoundError, Exception):
-            next_id = 1
+        # Get or create session_id based on user_id and boyfriend_name
+        from src.utils.session_id_generator import get_or_create_session_id
+        session_id = get_or_create_session_id(
+            db_handler=db_handler,
+            table_name="session_responses",
+            user_id=user_details.user_id,
+            boyfriend_name=user_details.bf_name,
+        )
 
         # Create SessionResponse value object
         session_response = SessionResponse(
-            id=next_id,
+            id=session_id,
             user_id=user_details.user_id,
             name=user_details.name,
             email=user_details.email,
@@ -122,8 +124,22 @@ class GoodbyeStep(BaseStep):
             filter_responses={k: safe_decimal(v) for k, v in self.session.state.get("filter_responses", {}).items()},
         )
 
-        # Convert to dict and save
-        db_handler.add_record("session_responses", session_response.to_dict())
+        # Convert to dict and save (or update if record already exists)
+        record_dict = session_response.to_dict()
+        # Check if record with this ID already exists
+        try:
+            existing = db_handler.load_table("session_responses")
+            if not existing.empty and session_id in existing["id"].values:
+                # Record exists, update it
+                db_handler.update_record("session_responses", {"id": session_id}, record_dict)
+                print(f"[OK] Updated existing session_response record (id: {session_id})")
+            else:
+                # New record, add it
+                db_handler.add_record("session_responses", record_dict)
+                print(f"[OK] Created new session_response record (id: {session_id})")
+        except Exception:
+            # If we can't check, just add (will overwrite in DynamoDB if exists)
+            db_handler.add_record("session_responses", record_dict)
 
     def _save_gtk_response(self, db_handler):
         """Save GetToKnow questions responses using GTKResponseRecord value object."""
@@ -135,16 +151,18 @@ class GoodbyeStep(BaseStep):
             bf_name=self.session.user_details["bf_name"],
         )
 
-        # Get next ID by checking existing records
-        try:
-            existing = db_handler.load_table("session_gtk_responses")
-            next_id = len(existing) + 1 if not existing.empty else 1
-        except (FileNotFoundError, Exception):
-            next_id = 1
+        # Get or create session_id based on user_id and boyfriend_name
+        from src.utils.session_id_generator import get_or_create_session_id
+        session_id = get_or_create_session_id(
+            db_handler=db_handler,
+            table_name="session_gtk_responses",
+            user_id=user_details.user_id,
+            boyfriend_name=user_details.bf_name,
+        )
 
         # Create GTKResponseRecord value object
         gtk_response = GTKResponseRecord(
-            id=next_id,
+            id=session_id,
             user_id=user_details.user_id,
             name=user_details.name,
             email=user_details.email,
@@ -154,8 +172,18 @@ class GoodbyeStep(BaseStep):
             gtk_responses=self.session.state.get("extra_questions_responses", {}),
         )
 
-        # Convert to dict and save
-        db_handler.add_record("session_gtk_responses", gtk_response.to_dict())
+        # Convert to dict and save (or update if record already exists)
+        record_dict = gtk_response.to_dict()
+        try:
+            existing = db_handler.load_table("session_gtk_responses")
+            if not existing.empty and session_id in existing["id"].values:
+                db_handler.update_record("session_gtk_responses", {"id": session_id}, record_dict)
+                print(f"[OK] Updated existing gtk_response record (id: {session_id})")
+            else:
+                db_handler.add_record("session_gtk_responses", record_dict)
+                print(f"[OK] Created new gtk_response record (id: {session_id})")
+        except Exception:
+            db_handler.add_record("session_gtk_responses", record_dict)
 
     def _save_toxicity_rating(self, db_handler):
         """Save toxicity rating using ToxicityRatingRecord value object."""
@@ -167,16 +195,18 @@ class GoodbyeStep(BaseStep):
             bf_name=self.session.user_details["bf_name"],
         )
 
-        # Get next ID by checking existing records
-        try:
-            existing = db_handler.load_table("session_toxicity_rating")
-            next_id = len(existing) + 1 if not existing.empty else 1
-        except (FileNotFoundError, Exception):
-            next_id = 1
+        # Get or create session_id based on user_id and boyfriend_name
+        from src.utils.session_id_generator import get_or_create_session_id
+        session_id = get_or_create_session_id(
+            db_handler=db_handler,
+            table_name="session_toxicity_rating",
+            user_id=user_details.user_id,
+            boyfriend_name=user_details.bf_name,
+        )
 
         # Create ToxicityRatingRecord value object
         toxicity_rating = ToxicityRatingRecord(
-            id=next_id,
+            id=session_id,
             user_id=user_details.user_id,
             name=user_details.name,
             email=user_details.email,
@@ -186,8 +216,18 @@ class GoodbyeStep(BaseStep):
             toxicity_rating=self.session.state.get("toxicity_rating"),
         )
 
-        # Convert to dict and save
-        db_handler.add_record("session_toxicity_rating", toxicity_rating.to_dict())
+        # Convert to dict and save (or update if record already exists)
+        record_dict = toxicity_rating.to_dict()
+        try:
+            existing = db_handler.load_table("session_toxicity_rating")
+            if not existing.empty and session_id in existing["id"].values:
+                db_handler.update_record("session_toxicity_rating", {"id": session_id}, record_dict)
+                print(f"[OK] Updated existing toxicity_rating record (id: {session_id})")
+            else:
+                db_handler.add_record("session_toxicity_rating", record_dict)
+                print(f"[OK] Created new toxicity_rating record (id: {session_id})")
+        except Exception:
+            db_handler.add_record("session_toxicity_rating", record_dict)
 
     def _save_feedback(self, db_handler):
         """Save feedback rating using FeedbackRecord value object."""
@@ -199,16 +239,18 @@ class GoodbyeStep(BaseStep):
             bf_name=self.session.user_details["bf_name"],
         )
 
-        # Get next ID by checking existing records
-        try:
-            existing = db_handler.load_table("session_feedback")
-            next_id = len(existing) + 1 if not existing.empty else 1
-        except (FileNotFoundError, Exception):
-            next_id = 1
+        # Get or create session_id based on user_id and boyfriend_name
+        from src.utils.session_id_generator import get_or_create_session_id
+        session_id = get_or_create_session_id(
+            db_handler=db_handler,
+            table_name="session_feedback",
+            user_id=user_details.user_id,
+            boyfriend_name=user_details.bf_name,
+        )
 
         # Create FeedbackRecord value object
         feedback = FeedbackRecord(
-            id=next_id,
+            id=session_id,
             user_id=user_details.user_id,
             user_name=user_details.name,
             email=user_details.email,
@@ -218,8 +260,18 @@ class GoodbyeStep(BaseStep):
             rating=self.session.state.get("feedback_rating"),
         )
 
-        # Convert to dict and save
-        db_handler.add_record("session_feedback", feedback.to_dict())
+        # Convert to dict and save (or update if record already exists)
+        record_dict = feedback.to_dict()
+        try:
+            existing = db_handler.load_table("session_feedback")
+            if not existing.empty and session_id in existing["id"].values:
+                db_handler.update_record("session_feedback", {"id": session_id}, record_dict)
+                print(f"[OK] Updated existing feedback record (id: {session_id})")
+            else:
+                db_handler.add_record("session_feedback", record_dict)
+                print(f"[OK] Created new feedback record (id: {session_id})")
+        except Exception:
+            db_handler.add_record("session_feedback", record_dict)
     
     def _update_summary_statistics(self, db_handler):
         """Update Summary_Sessions table with new session data."""
@@ -250,40 +302,9 @@ class GoodbyeStep(BaseStep):
             sum_filter_violations = sum_filter_violations + cur_filter_violations
             avg_filter_violations = Decimal("1.0") * Decimal(str(sum_filter_violations)) / Decimal(str(count_guys))
             
-            # Get max IDs from session state
-            max_id_session_responses = int(self.session.state.get("max_id_session_responses", 0))
-            max_id_gtk_responses = int(self.session.state.get("max_id_gtk_responses", 0))
-            max_id_feedback = int(self.session.state.get("max_id_feedback", 0))
-            max_id_session_toxicity_rating = int(self.session.state.get("max_id_session_toxicity_rating", 0))
-            
-            # Update max IDs by checking actual records
-            try:
-                session_responses = db_handler.load_table("session_responses")
-                if not session_responses.empty and "id" in session_responses.columns:
-                    max_id_session_responses = max(max_id_session_responses, int(session_responses["id"].max()))
-            except:
-                pass
-            
-            try:
-                gtk_responses = db_handler.load_table("session_gtk_responses")
-                if not gtk_responses.empty and "id" in gtk_responses.columns:
-                    max_id_gtk_responses = max(max_id_gtk_responses, int(gtk_responses["id"].max()))
-            except:
-                pass
-            
-            try:
-                feedback = db_handler.load_table("session_feedback")
-                if not feedback.empty and "id" in feedback.columns:
-                    max_id_feedback = max(max_id_feedback, int(feedback["id"].max()))
-            except:
-                pass
-            
-            try:
-                toxicity_rating = db_handler.load_table("session_toxicity_rating")
-                if not toxicity_rating.empty and "id" in toxicity_rating.columns:
-                    max_id_session_toxicity_rating = max(max_id_session_toxicity_rating, int(toxicity_rating["id"].max()))
-            except:
-                pass
+            # Note: max_id tracking removed - IDs are now hash-based and order-agnostic
+            # We no longer need to track max IDs since session_ids are generated deterministically
+            # from user_id + boyfriend_name, not sequentially
             
             last_date = self.session.state.get("session_start_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             
@@ -296,10 +317,11 @@ class GoodbyeStep(BaseStep):
                 "sum_filter_violations": sum_filter_violations,
                 "avg_filter_violations": float(avg_filter_violations),
                 "count_guys": count_guys,
-                "max_id_session_responses": max_id_session_responses,
-                "max_id_gtk_responses": max_id_gtk_responses,
-                "max_id_feedback": max_id_feedback,
-                "max_id_session_toxicity_rating": max_id_session_toxicity_rating,
+                # max_id fields kept for backward compatibility but set to 0 (no longer tracked)
+                "max_id_session_responses": 0,
+                "max_id_gtk_responses": 0,
+                "max_id_feedback": 0,
+                "max_id_session_toxicity_rating": 0,
                 "last_update_date": last_date,
             }
             
@@ -329,10 +351,7 @@ class GoodbyeStep(BaseStep):
             self.session.state["sum_filter_violations"] = sum_filter_violations
             self.session.state["avg_filter_violations"] = avg_filter_violations
             self.session.state["count_guys"] = count_guys
-            self.session.state["max_id_session_responses"] = max_id_session_responses
-            self.session.state["max_id_gtk_responses"] = max_id_gtk_responses
-            self.session.state["max_id_feedback"] = max_id_feedback
-            self.session.state["max_id_session_toxicity_rating"] = max_id_session_toxicity_rating
+            # max_id fields no longer tracked in session state
             
         except Exception as e:
             print(f"[ERROR] Failed to update Summary_Sessions: {e}")
@@ -378,17 +397,19 @@ class GoodbyeStep(BaseStep):
             if violated_filter_questions:
                 violated_filter_questions_text = " | ".join([q[0] for q in violated_filter_questions])
             
-            # Get next ID by checking existing records
-            try:
-                existing = db_handler.load_table("session_insights")
-                next_id = len(existing) + 1 if not existing.empty else 1
-            except (FileNotFoundError, Exception):
-                next_id = 1
+            # Get or create session_id based on user_id and boyfriend_name
+            from src.utils.session_id_generator import get_or_create_session_id
+            session_id = get_or_create_session_id(
+                db_handler=db_handler,
+                table_name="session_insights",
+                user_id=user_id,
+                boyfriend_name=bf_name,
+            )
             
             # Prepare record data
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             record_data = {
-                "id": next_id,
+                "id": session_id,
                 "timestamp": timestamp,
                 "user_id": user_id,
                 "name": user_name,
@@ -414,9 +435,18 @@ class GoodbyeStep(BaseStep):
                 "result_start_time": session_data.get("result_start_time", ""),
             }
             
-            # Save to database (CSV or DynamoDB)
-            db_handler.add_record("session_insights", record_data)
-            print(f"[OK] Session insights saved to database (id: {next_id})")
+            # Save to database (CSV or DynamoDB) - update if exists
+            try:
+                existing = db_handler.load_table("session_insights")
+                if not existing.empty and session_id in existing["id"].values:
+                    db_handler.update_record("session_insights", {"id": session_id}, record_data)
+                    print(f"[OK] Updated existing session_insights record (id: {session_id})")
+                else:
+                    db_handler.add_record("session_insights", record_data)
+                    print(f"[OK] Created new session_insights record (id: {session_id})")
+            except Exception:
+                db_handler.add_record("session_insights", record_data)
+                print(f"[OK] Session insights saved to database (id: {session_id})")
             
         except Exception as e:
             print(f"[ERROR] Failed to save session insights: {e}")

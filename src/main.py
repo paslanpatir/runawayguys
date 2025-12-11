@@ -85,10 +85,7 @@ def _load_summary_statistics(DB_READ, session):
             session.state["sum_filter_violations"] = row.get("sum_filter_violations", 0)
             session.state["avg_filter_violations"] = row.get("avg_filter_violations", 0)
             session.state["count_guys"] = row.get("count_guys", 0)
-            session.state["max_id_session_responses"] = row.get("max_id_session_responses", 0)
-            session.state["max_id_gtk_responses"] = row.get("max_id_gtk_responses", 0)
-            session.state["max_id_feedback"] = row.get("max_id_feedback", 0)
-            session.state["max_id_session_toxicity_rating"] = row.get("max_id_session_toxicity_rating", 0)
+            # max_id fields no longer loaded - IDs are now hash-based and order-agnostic
             print(f"[OK] Summary statistics loaded. avg_toxic_score: {session.state['avg_toxic_score']}")
         else:
             # Initialize with defaults if table is empty
@@ -99,10 +96,7 @@ def _load_summary_statistics(DB_READ, session):
             session.state["sum_filter_violations"] = 0
             session.state["avg_filter_violations"] = 0
             session.state["count_guys"] = 0
-            session.state["max_id_session_responses"] = 0
-            session.state["max_id_gtk_responses"] = 0
-            session.state["max_id_feedback"] = 0
-            session.state["max_id_session_toxicity_rating"] = 0
+            # max_id fields no longer initialized - IDs are now hash-based
             print("[WARNING] Summary_Sessions table is empty. Using default values.")
         
         db_handler.close()
@@ -116,7 +110,4 @@ def _load_summary_statistics(DB_READ, session):
         session.state["sum_filter_violations"] = 0
         session.state["avg_filter_violations"] = 0
         session.state["count_guys"] = 0
-        session.state["max_id_session_responses"] = 0
-        session.state["max_id_gtk_responses"] = 0
-        session.state["max_id_feedback"] = 0
-        session.state["max_id_session_toxicity_rating"] = 0
+        # max_id fields no longer initialized - IDs are now hash-based

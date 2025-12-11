@@ -46,6 +46,36 @@ class DynamoDBAdapter(DatabasePort):
         except Exception as e:
             print(f"[ERROR] Error updating DynamoDB record: {e}")
 
+    def delete_record(self, table_name: str, record_id: int, id_column: str = "id") -> bool:
+        """Delete a record from DynamoDB by ID.
+        
+        Note: For DynamoDB, the primary key must be specified correctly.
+        Most tables use 'id' as the partition key.
+        """
+        try:
+            table = self.dynamodb.Table(table_name)
+            # DynamoDB requires the full primary key
+            # For most tables, the primary key is just 'id'
+            key_dict = {id_column: record_id}
+            
+            # First, check if the record exists by trying to get it
+            try:
+                response = table.get_item(Key=key_dict)
+                if "Item" not in response:
+                    print(f"[WARNING] No record found with {id_column}={record_id} in {table_name}")
+                    return False
+            except Exception as e:
+                print(f"[WARNING] Could not check if record exists: {e}")
+                return False
+            
+            # Delete the record
+            table.delete_item(Key=key_dict)
+            print(f"[OK] Deleted record with {id_column}={record_id} from {table_name}")
+            return True
+        except Exception as e:
+            print(f"[ERROR] Error deleting DynamoDB record: {e}")
+            return False
+
     def close(self) -> None:
         self.conn_manager.close()
 
