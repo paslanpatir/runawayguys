@@ -3,7 +3,6 @@ import streamlit as st
 from typing import Optional, List, Tuple, Dict, Any
 from src.ports.llm_port import LLMPort
 from src.adapters.llm.llm_factory import LLMFactory
-from src.utils.insight_logger import log_insight_generation
 
 
 class InsightService:
@@ -112,26 +111,28 @@ class InsightService:
                 print(f"[DEBUG] Translated (first 100 chars): {translated_insights[:100]}...")
                 insights = translated_insights
             
-            # Log insight generation for debugging
+            # Store insight metadata in session state for later saving in goodbye_step
+            # This will be saved to database (CSV or DynamoDB) when user completes the survey
             if session_data is None:
                 session_data = {}
             
-            log_insight_generation(
-                user_id=user_id or "unknown",
-                user_name=user_name,
-                email=email,
-                bf_name=bf_name,
-                language=language,
-                toxic_score=toxic_score,
-                avg_toxic_score=avg_toxic_score,
-                filter_violations=filter_violations,
-                violated_filter_questions=violated_filter_questions,
-                top_redflag_questions=top_redflag_questions,
-                generated_insight=insights,
-                prompt_text=prompt_text,
-                model_name=formatted_model_name,
-                session_data=session_data,
-            )
+            insight_metadata = {
+                "user_id": user_id or "unknown",
+                "user_name": user_name,
+                "email": email,
+                "bf_name": bf_name,
+                "language": language,
+                "toxic_score": toxic_score,
+                "avg_toxic_score": avg_toxic_score,
+                "filter_violations": filter_violations,
+                "violated_filter_questions": violated_filter_questions,
+                "top_redflag_questions": top_redflag_questions,
+                "generated_insight": insights,
+                "prompt_text": prompt_text,
+                "model_name": formatted_model_name,
+                "session_data": session_data,
+            }
+            st.session_state["insight_metadata"] = insight_metadata
             
             return insights
         except Exception as e:

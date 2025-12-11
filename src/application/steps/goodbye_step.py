@@ -76,6 +76,10 @@ class GoodbyeStep(BaseStep):
             # Update Summary_Sessions table after saving all data
             if self.session.state.get("redflag_responses") and self.session.state.get("filter_responses"):
                 self._update_summary_statistics(db_handler)
+            
+            # Save session insights if available
+            if self.session.state.get("insight_metadata"):
+                self._save_session_insights(db_handler)
 
             db_handler.close()
         except Exception as e:
@@ -332,5 +336,89 @@ class GoodbyeStep(BaseStep):
             
         except Exception as e:
             print(f"[ERROR] Failed to update Summary_Sessions: {e}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+    
+    def _save_session_insights(self, db_handler):
+        """Save session insights to database (CSV or DynamoDB)."""
+        try:
+            insight_metadata = self.session.state.get("insight_metadata")
+            if not insight_metadata:
+                return
+            
+            from typing import List, Tuple, Optional
+            
+            # Extract data from metadata
+            user_id = insight_metadata.get("user_id", "unknown")
+            user_name = insight_metadata.get("user_name", "User")
+            email = insight_metadata.get("email")
+            bf_name = insight_metadata.get("bf_name", "Your boyfriend")
+            language = insight_metadata.get("language", "EN")
+            toxic_score = insight_metadata.get("toxic_score", 0.0)
+            avg_toxic_score = insight_metadata.get("avg_toxic_score", 0.5)
+            filter_violations = insight_metadata.get("filter_violations", 0)
+            violated_filter_questions: Optional[List[Tuple[str, int, str]]] = insight_metadata.get("violated_filter_questions")
+            top_redflag_questions: Optional[List[Tuple[str, float, str]]] = insight_metadata.get("top_redflag_questions")
+            generated_insight = insight_metadata.get("generated_insight")
+            prompt_text = insight_metadata.get("prompt_text", "")
+            model_name = insight_metadata.get("model_name", "")
+            session_data = insight_metadata.get("session_data", {})
+            
+            # Format redflag questions for storage
+            redflag_questions_text = ""
+            redflag_ratings_text = ""
+            if top_redflag_questions:
+                questions = [q[0] for q in top_redflag_questions]
+                ratings = [str(q[1]) for q in top_redflag_questions]
+                redflag_questions_text = " | ".join(questions)
+                redflag_ratings_text = " | ".join(ratings)
+            
+            # Format violated filter questions for storage
+            violated_filter_questions_text = ""
+            if violated_filter_questions:
+                violated_filter_questions_text = " | ".join([q[0] for q in violated_filter_questions])
+            
+            # Get next ID by checking existing records
+            try:
+                existing = db_handler.load_table("session_insights")
+                next_id = len(existing) + 1 if not existing.empty else 1
+            except (FileNotFoundError, Exception):
+                next_id = 1
+            
+            # Prepare record data
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            record_data = {
+                "id": next_id,
+                "timestamp": timestamp,
+                "user_id": user_id,
+                "name": user_name,
+                "email": email or "",
+                "boyfriend_name": bf_name,
+                "language": language,
+                "toxic_score": float(toxic_score),
+                "avg_toxic_score": float(avg_toxic_score),
+                "filter_violations": filter_violations,
+                "violated_filter_questions": violated_filter_questions_text,
+                "redflag_questions": redflag_questions_text,
+                "redflag_ratings": redflag_ratings_text,
+                "redflag_questions_count": len(top_redflag_questions) if top_redflag_questions else 0,
+                "model_name": model_name,
+                "prompt_text": prompt_text,
+                "generated_insight": generated_insight or "",
+                "insight_length": len(generated_insight) if generated_insight else 0,
+                "filter_responses": str(session_data.get("filter_responses", "")),
+                "redflag_responses": str(session_data.get("redflag_responses", "")),
+                "toxicity_rating": session_data.get("toxicity_rating", ""),
+                "feedback_rating": session_data.get("feedback_rating", ""),
+                "session_start_time": session_data.get("session_start_time", ""),
+                "result_start_time": session_data.get("result_start_time", ""),
+            }
+            
+            # Save to database (CSV or DynamoDB)
+            db_handler.add_record("session_insights", record_data)
+            print(f"[OK] Session insights saved to database (id: {next_id})")
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to save session insights: {e}")
             import traceback
             print(f"[ERROR] Traceback: {traceback.format_exc()}")
