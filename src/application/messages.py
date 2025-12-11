@@ -163,8 +163,8 @@ class Message:
                 "EN": "Email sending skipped.",
             },
             "contact_email_info_msg": {
-                "TR": "Herhangi bir görüş veya isteğiniz için runawayguysapp@gmail.com adresine e-posta gönderebilirsiniz.",
-                "EN": "For any opinions or requests, you can send an email to runawayguysapp@gmail.com.",
+                "TR": "Herhangi bir görüş veya isteğiniz için [runawayguysapp@gmail.com](mailto:runawayguysapp@gmail.com) adresine e-posta gönderebilirsiniz.",
+                "EN": "For any opinions or requests, you can send an email to [runawayguysapp@gmail.com](mailto:runawayguysapp@gmail.com).",
             },
             "enter_bf_name_msg": {"TR": "Lütfen erkek arkadaşınızın adını girin:", "EN": "Please enter your boyfriend's name:"},
             "enter_feedback_msg": {"TR": "Lütfen geri bildirim verin :gift_heart:", "EN": "Please provide feedback :gift_heart:"},

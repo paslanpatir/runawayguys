@@ -30,7 +30,7 @@ class GoodbyeStep(BaseStep):
 
         # Show contact information
         st.divider()
-        st.info(msg.get("contact_email_info_msg"))
+        st.markdown(msg.get("contact_email_info_msg"))
 
         # Show option to start a new survey
         st.divider()
