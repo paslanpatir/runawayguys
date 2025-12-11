@@ -84,17 +84,12 @@ class ReportStep(BaseStep):
                     language=language,
                 )
             
-            # Generate toxic plot image
-            toxic_plot_image = self._generate_toxic_plot_image()
-            print(f"[DEBUG] Email - toxic_plot_image generated: {toxic_plot_image is not None}, size: {len(toxic_plot_image) if toxic_plot_image else 0} bytes")
-            
             session_data = {
                 "user_details": self.session.user_details,
                 "toxic_score": self.session.state.get("toxic_score", 0),
                 "avg_toxic_score": avg_toxic_score,
                 "filter_violations": self.session.state.get("filter_violations", 0),
                 "violated_filter_questions": violated_filter_questions,
-                "toxic_plot_image": toxic_plot_image,
             }
             # Only include insights if LLM is enabled
             if llm_enabled:

@@ -19,6 +19,8 @@ class AskUserDetails(BaseStep):
                 msg.get("email_input") + " (Optional)",
                 key="email_input"
             )
+            # Show info message about email report
+            st.caption(msg.get("email_report_info_msg"))
 
             if st.form_submit_button(msg.get("continue_msg")):
                 if name:

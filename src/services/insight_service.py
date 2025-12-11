@@ -92,6 +92,8 @@ class InsightService:
                 language=language,
             )
             
+            # Always use English for LLM (better performance)
+            # LLM will return English response
             insights = self.llm.generate_insights(
                 user_name=user_name,
                 bf_name=bf_name,
@@ -99,9 +101,16 @@ class InsightService:
                 avg_toxic_score=avg_toxic_score,
                 filter_violations=filter_violations,
                 violated_filter_questions=violated_filter_questions,
-                language=language,
+                language="EN",  # Always use English for LLM
                 top_redflag_questions=top_redflag_questions,
             )
+            
+            # Translate English response to Turkish if needed
+            if language == "TR" and insights:
+                print(f"[DEBUG] Translating insights to Turkish. Original (first 100 chars): {insights[:100]}...")
+                translated_insights = self._translate_to_turkish(insights)
+                print(f"[DEBUG] Translated (first 100 chars): {translated_insights[:100]}...")
+                insights = translated_insights
             
             # Log insight generation for debugging
             if session_data is None:
@@ -128,6 +137,29 @@ class InsightService:
         except Exception as e:
             print(f"[ERROR] Error generating insights: {e}")
             return None
+
+    def _translate_to_turkish(self, english_text: str) -> str:
+        """
+        Translate English text to Turkish.
+        Uses deep-translator library (Google Translate) if available, otherwise returns English text.
+        """
+        try:
+            from deep_translator import GoogleTranslator
+            print("[DEBUG] Initializing GoogleTranslator...")
+            translator = GoogleTranslator(source='en', target='tr')
+            print(f"[DEBUG] Translating text (length: {len(english_text)})...")
+            translated_text = translator.translate(english_text)
+            print(f"[DEBUG] Translation successful. Translated text (first 100 chars): {translated_text[:100]}...")
+            return translated_text
+        except ImportError as e:
+            print(f"[WARNING] deep-translator not installed: {e}")
+            print("[INFO] Returning English text. For Turkish translation, install deep-translator: pip install deep-translator")
+            return english_text
+        except Exception as e:
+            print(f"[ERROR] Translation failed: {e}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            return english_text
 
     def close(self):
         """Close the LLM connection."""

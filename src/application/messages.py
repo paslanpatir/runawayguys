@@ -133,6 +133,10 @@ class Message:
                 "TR": "Lütfen geçerli bir e-posta adresi girin (örneğin, ornek@alanadi.com).",
                 "EN": "Please enter a valid email address (e.g., example@domain.com).",
             },
+            "email_report_info_msg": {
+                "TR": "💡 E-posta adresinizi girerseniz, anket sonunda detaylı raporunuz bu adrese gönderilecektir.",
+                "EN": "💡 If you provide your email address, a detailed report will be sent to this address at the end of the survey.",
+            },
             "enter_name_msg": {"TR": "Lütfen adınızı girin.", "EN": "Please enter your name."},
             "report_sent_msg": {
                 "TR": "Raporunuz e-posta ile gönderildi!",

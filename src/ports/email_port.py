@@ -18,7 +18,6 @@ class EmailPort(ABC):
         violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         language: str = "EN",
         insights: str = None,
-        toxic_plot_image: Optional[bytes] = None,
     ) -> bool:
         """
         Send a survey report email.
@@ -33,7 +32,6 @@ class EmailPort(ABC):
             violated_filter_questions: List of violated filter questions (question_text, answer, filter_id)
             language: Language code (TR or EN)
             insights: AI-generated insights (optional)
-            toxic_plot_image: PNG image bytes for toxic plot (optional)
         """
         pass
 

@@ -24,6 +24,8 @@ class InsightPromptBuilder:
     ) -> Tuple[str, str]:
         """
         Build the full prompt for LLM insights generation.
+        Always uses English prompt for better LLM performance, regardless of user language.
+        Questions should already be in English when passed to this function.
         
         Args:
             user_name: Name of the user
@@ -31,26 +33,20 @@ class InsightPromptBuilder:
             toxic_score: Toxicity score (0-1)
             avg_toxic_score: Average toxicity score from all users (0-1)
             filter_violations: Number of filter violations
-            violated_filter_questions: List of violated filter questions
-            top_redflag_questions: List of top redflag questions with ratings
-            language: Language code (TR or EN)
+            violated_filter_questions: List of violated filter questions (should be in English)
+            top_redflag_questions: List of top redflag questions with ratings (should be in English)
+            language: Language code (TR or EN) - used for logging only, not for prompt
             max_words: Maximum number of words for the response (default: 100)
             
         Returns:
-            Tuple of (system_message, user_prompt)
+            Tuple of (system_message, user_prompt) - always in English
         """
-        if language == "TR":
-            system_msg = InsightPromptBuilder.SYSTEM_MESSAGE_TR
-            user_prompt = InsightPromptBuilder._build_turkish_prompt(
-                user_name, bf_name, toxic_score, avg_toxic_score,
-                filter_violations, violated_filter_questions, top_redflag_questions, max_words
-            )
-        else:
-            system_msg = InsightPromptBuilder.SYSTEM_MESSAGE_EN
-            user_prompt = InsightPromptBuilder._build_english_prompt(
-                user_name, bf_name, toxic_score, avg_toxic_score,
-                filter_violations, violated_filter_questions, top_redflag_questions, max_words
-            )
+        # Always use English prompt for better LLM performance
+        system_msg = InsightPromptBuilder.SYSTEM_MESSAGE_EN
+        user_prompt = InsightPromptBuilder._build_english_prompt(
+            user_name, bf_name, toxic_score, avg_toxic_score,
+            filter_violations, violated_filter_questions, top_redflag_questions, max_words
+        )
         
         return system_msg, user_prompt
     

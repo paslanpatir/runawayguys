@@ -220,12 +220,14 @@ class ResultsStep(BaseStep):
                 
                 if redflag_responses and questions:
                     # Get top N questions with rating >= minimum threshold
+                    # Always use English versions for LLM (better performance)
                     top_redflag_questions = get_top_redflag_questions(
                         redflag_responses=redflag_responses,
                         questions=questions,
-                        language=language,
+                        language=language,  # For logging/display
                         top_n=TOP_REDFLAG_QUESTIONS_COUNT,
                         min_rating=MIN_REDFLAG_RATING,
+                        use_english_for_llm=True,  # Always use English for LLM
                     )
                 
                 # Get violated filter questions
@@ -258,10 +260,12 @@ class ResultsStep(BaseStep):
                 
                 if filter_responses and filter_questions:
                     print(f"[DEBUG] Getting violated filter questions from {len(filter_responses)} responses and {len(filter_questions)} questions")
+                    # Always use English versions for LLM (better performance)
                     violated_filter_questions = get_violated_filter_questions(
                         filter_responses=filter_responses,
                         questions=filter_questions,
-                        language=language,
+                        language=language,  # For logging/display
+                        use_english_for_llm=True,  # Always use English for LLM
                     )
                     print(f"[DEBUG] Found {len(violated_filter_questions) if violated_filter_questions else 0} violated filter questions")
                     if violated_filter_questions:

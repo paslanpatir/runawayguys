@@ -32,7 +32,6 @@ class EmailAdapter(EmailPort):
         violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         language: str = "EN",
         insights: str = None,
-        toxic_plot_image: Optional[bytes] = None,
     ) -> bool:
         """
         Send survey results report via email.
@@ -66,7 +65,7 @@ class EmailAdapter(EmailPort):
             # Create email body
             body = self._create_email_body(
                 user_name, bf_name, toxic_score, avg_toxic_score,
-                filter_violations, violated_filter_questions, language, insights, toxic_plot_image
+                filter_violations, violated_filter_questions, language, insights
             )
             msg.attach(MIMEText(body, "html"))
 
@@ -103,7 +102,6 @@ class EmailAdapter(EmailPort):
         violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         language: str = "EN",
         insights: str = None,
-        toxic_plot_image: Optional[bytes] = None,
     ) -> str:
         """Create HTML email body with survey results and insights."""
         score_percentage = round(toxic_score * 100, 1)
@@ -122,28 +120,6 @@ class EmailAdapter(EmailPort):
                 for question_text, answer, f_id in violated_filter_questions:
                     violated_filters_html += f"<li>{question_text}</li>"
                 violated_filters_html += "</ul>"
-        
-        # Format plot image
-        plot_html = ""
-        if toxic_plot_image:
-            print(f"[DEBUG] Email - toxic_plot_image received: {len(toxic_plot_image)} bytes")
-            # Convert image to base64 for embedding
-            plot_base64 = base64.b64encode(toxic_plot_image).decode('utf-8')
-            print(f"[DEBUG] Email - plot_base64 length: {len(plot_base64)} characters")
-            if language == "TR":
-                plot_html = f"""
-                        <div style="margin: 20px 0;">
-                            <h3 style="margin-top: 0;">📈 Toksisite Karşılaştırması</h3>
-                            <img src="data:image/png;base64,{plot_base64}" alt="Toxicity Comparison Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px;" />
-                        </div>
-                """
-            else:
-                plot_html = f"""
-                        <div style="margin: 20px 0;">
-                            <h3 style="margin-top: 0;">📈 Toxicity Comparison</h3>
-                            <img src="data:image/png;base64,{plot_base64}" alt="Toxicity Comparison Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px;" />
-                        </div>
-                """
         
         # Format insights for HTML
         insights_html = ""
@@ -179,7 +155,6 @@ class EmailAdapter(EmailPort):
                             <p><strong>Filtre İhlalleri:</strong> {filter_violations}</p>
                             {violated_filters_html}
                         </div>
-                        {plot_html}
                         {insights_html}
                         <p>Detaylı rapor ve grafikler için web sitesini ziyaret edebilirsiniz.</p>
                         
@@ -206,7 +181,6 @@ class EmailAdapter(EmailPort):
                             <p><strong>Filter Violations:</strong> {filter_violations}</p>
                             {violated_filters_html}
                         </div>
-                        {plot_html}
                         {insights_html}
                         <p>Visit our website for detailed reports and graphs.</p>
                         
@@ -248,7 +222,6 @@ def send_survey_report(
     filter_violations = session_data.get("filter_violations", 0)
     violated_filter_questions = session_data.get("violated_filter_questions")
     insights = session_data.get("ai_insights")
-    toxic_plot_image = session_data.get("toxic_plot_image")
     
     return sender.send_report(
         recipient_email=recipient_email,
@@ -260,6 +233,5 @@ def send_survey_report(
         violated_filter_questions=violated_filter_questions,
         language=language,
         insights=insights,
-        toxic_plot_image=toxic_plot_image,
     )
 

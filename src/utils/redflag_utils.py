@@ -10,6 +10,7 @@ def get_top_redflag_questions(
     language: str = "EN",
     top_n: int = 5,
     min_rating: float = 0.0,
+    use_english_for_llm: bool = False,
 ) -> List[Tuple[str, float, str]]:
     """
     Get top N redflag questions with highest ratings.
@@ -17,9 +18,10 @@ def get_top_redflag_questions(
     Args:
         redflag_responses: Dictionary mapping question_id (e.g., "Q1") to rating (0-10)
         questions: List of RedFlagQuestion objects
-        language: Language code (TR or EN)
+        language: Language code (TR or EN) - used for display
         top_n: Number of top questions to return (default: 5)
         min_rating: Minimum rating threshold to include (default: 0.0)
+        use_english_for_llm: If True, always return English question texts (for LLM prompts)
         
     Returns:
         List of tuples: (question_text, rating, question_id)
@@ -46,7 +48,9 @@ def get_top_redflag_questions(
         # Get question object
         question = question_map.get(q_id)
         if question:
-            question_text = question.get_question(language)
+            # Use English for LLM, otherwise use specified language
+            question_lang = "EN" if use_english_for_llm else language
+            question_text = question.get_question(question_lang)
             rated_questions.append((question_text, rating, q_id))
     
     # Sort by rating (highest first)
@@ -89,6 +93,7 @@ def get_violated_filter_questions(
     filter_responses: Dict[str, int],
     questions: List[FilterQuestion],
     language: str = "EN",
+    use_english_for_llm: bool = False,
 ) -> List[Tuple[str, int, str]]:
     """
     Get filter questions that were violated (answer >= upper_limit).
@@ -96,7 +101,8 @@ def get_violated_filter_questions(
     Args:
         filter_responses: Dictionary mapping filter_id (e.g., "F1") to answer (0 or 1 for YES/NO, or score for Limit)
         questions: List of FilterQuestion objects
-        language: Language code (TR or EN)
+        language: Language code (TR or EN) - used for display
+        use_english_for_llm: If True, always return English question texts (for LLM prompts)
         
     Returns:
         List of tuples: (question_text, answer, filter_id)
@@ -116,7 +122,9 @@ def get_violated_filter_questions(
         if question:
             print(f"[DEBUG] Checking {f_id}: answer={answer}, upper_limit={question.upper_limit}, violated={answer >= question.upper_limit}")
             if answer >= question.upper_limit:
-                question_text = question.get_question(language)
+                # Use English for LLM, otherwise use specified language
+                question_lang = "EN" if use_english_for_llm else language
+                question_text = question.get_question(question_lang)
                 violated_questions.append((question_text, answer, f_id))
         else:
             print(f"[DEBUG] No question found for {f_id} in question_map")
