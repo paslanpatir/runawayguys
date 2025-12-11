@@ -113,6 +113,11 @@ def get_violated_filter_questions(
     
     print(f"[DEBUG] get_violated_filter_questions: {len(filter_responses)} responses, {len(questions)} questions")
     print(f"[DEBUG] Question map keys: {list(question_map.keys())[:5]}...")  # Show first 5 keys
+    print(f"[DEBUG] Filter response keys: {list(filter_responses.keys())[:5]}...")  # Show first 5 response keys
+    
+    if not questions:
+        print(f"[ERROR] No filter questions provided! Cannot detect violations.")
+        return []
     
     # Filter and collect violated questions
     violated_questions = []

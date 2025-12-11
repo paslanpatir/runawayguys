@@ -389,17 +389,29 @@ class ResultsStep(BaseStep):
             if filter_responses is None:
                 filter_responses = {}
             
-            filter_questions = self.session.state.get("randomized_filters")
-            
-            # If filter questions not in session, load from database
-            if not filter_questions and filter_responses:
-                db_read_allowed = self.session.state.get("db_read_allowed", False)
-                db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
-                repository = QuestionRepository(db_handler)
-                filter_questions = repository.get_filter_questions()
-                # Cache them for potential future use
-                if filter_questions:
-                    self.session.state.randomized_filters = filter_questions
+            # Always load filter questions from database (randomized_filters is only for display order)
+            # We match by filter_id, so we don't need the randomized order
+            filter_questions = None
+            if filter_responses:
+                print(f"[DEBUG] Loading filter questions from database to match violations...")
+                print(f"[DEBUG] Filter responses keys: {list(filter_responses.keys())[:10]}")
+                try:
+                    db_read_allowed = self.session.state.get("db_read_allowed", False)
+                    db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
+                    repository = QuestionRepository(db_handler)
+                    filter_questions = repository.get_filter_questions()
+                    print(f"[DEBUG] Loaded {len(filter_questions) if filter_questions else 0} filter questions from database")
+                    if filter_questions:
+                        # Show first few question IDs for debugging
+                        first_ids = [f"F{q.filter_id}" for q in filter_questions[:5]]
+                        print(f"[DEBUG] First 5 question IDs: {first_ids}")
+                    else:
+                        print(f"[WARNING] Failed to load filter questions from database!")
+                    db_handler.close()
+                except Exception as e:
+                    print(f"[ERROR] Exception loading filter questions: {e}")
+                    import traceback
+                    print(f"[ERROR] Traceback: {traceback.format_exc()}")
             
             if filter_responses and filter_questions:
                 # Always use English versions for LLM (better performance)
