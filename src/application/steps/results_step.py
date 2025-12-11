@@ -51,10 +51,13 @@ class ResultsStep(BaseStep):
         if not self.session.state.get("main_data_saved", False):
             self._save_main_data()
             self.session.state["main_data_saved"] = True
-            st.success(self.msg.get("response_saved_msg"))
+            st.toast(self.msg.get("response_saved_msg"), icon="✅")
 
         if st.button(msg.get("survey_complete_msg")):
             self.session.state["survey_completed"] = True
+            # Show toast message when survey is completed
+            saved_msg = self.msg.get("response_saved_msg")
+            st.toast(saved_msg, icon="🎉")
             st.rerun()
 
         return self.session.state.get("survey_completed") is True

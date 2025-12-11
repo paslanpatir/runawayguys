@@ -38,6 +38,9 @@ class FeedbackStep(BaseStep):
                 if not self.session.state.get("feedback_saved", False):
                     self._save_feedback()
                     self.session.state["feedback_saved"] = True
+                    # Show toast message when feedback is saved
+                    feedback_msg = msg.get("response_saved_msg") if msg.texts.get("response_saved_msg") else "Feedback saved successfully!"
+                    st.toast(feedback_msg, icon="✅")
                 st.rerun()
             else:
                 st.error(msg.get("please_rate_msg"))

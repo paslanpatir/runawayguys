@@ -96,7 +96,8 @@ class ReportStep(BaseStep):
             success = send_survey_report(email, email_data, language)
             
             if success:
-                st.success(msg.get("report_sent_to_msg", email=email))
+                report_msg = msg.get("report_sent_to_msg", email=email)
+                st.toast(report_msg, icon="📧")
                 self.session.state["report_sent"] = True
             else:
                 st.warning("Email could not be sent. Please check your email configuration.")
