@@ -667,10 +667,16 @@ class ResultsStep(BaseStep):
             avg_toxic_score = Decimal("1.0") * sum_toxic_score / Decimal(str(count_guys))
             
             # Update max and min toxic scores
-            if cur_toxic_score > max_toxic_score:
+            # For first record (count_guys == 0 before increment), set both to current score
+            if count_guys == 0:
                 max_toxic_score = cur_toxic_score
-            if cur_toxic_score < min_toxic_score:
                 min_toxic_score = cur_toxic_score
+            else:
+                # For subsequent records, update min/max normally
+                if cur_toxic_score > max_toxic_score:
+                    max_toxic_score = cur_toxic_score
+                if cur_toxic_score < min_toxic_score:
+                    min_toxic_score = cur_toxic_score
             
             # Update filter violations
             sum_filter_violations = sum_filter_violations + cur_filter_violations

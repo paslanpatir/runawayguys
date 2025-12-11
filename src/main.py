@@ -113,8 +113,8 @@ def _load_summary_statistics(DB_READ, session):
             else:
                 # Fallback to defaults if initialization failed
                 session.state["sum_toxic_score"] = Decimal("0")
-                session.state["max_toxic_score"] = Decimal("0")
-                session.state["min_toxic_score"] = Decimal("1")
+                session.state["max_toxic_score"] = Decimal("1")  # Start at 1 (max possible)
+                session.state["min_toxic_score"] = Decimal("0")  # Start at 0 (min possible)
                 session.state["avg_toxic_score"] = Decimal("0.5")
                 session.state["sum_filter_violations"] = 0
                 session.state["avg_filter_violations"] = 0
@@ -126,8 +126,8 @@ def _load_summary_statistics(DB_READ, session):
         print(f"[WARNING] Could not load summary statistics: {e}")
         # Set defaults on error (table doesn't exist yet or other error)
         session.state["sum_toxic_score"] = Decimal("0")
-        session.state["max_toxic_score"] = Decimal("0")
-        session.state["min_toxic_score"] = Decimal("1")
+        session.state["max_toxic_score"] = Decimal("1")  # Start at 1 (max possible)
+        session.state["min_toxic_score"] = Decimal("0")  # Start at 0 (min possible)
         session.state["avg_toxic_score"] = Decimal("0.5")
         session.state["sum_filter_violations"] = 0
         session.state["avg_filter_violations"] = 0
