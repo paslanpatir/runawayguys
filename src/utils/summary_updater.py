@@ -34,8 +34,8 @@ def update_summary_after_delete(
         sum_toxic_score = Decimal(str(row.get("sum_toxic_score", 0)))
         count_guys = int(row.get("count_guys", 0))
         sum_filter_violations = int(row.get("sum_filter_violations", 0))
-        max_toxic_score = Decimal(str(row.get("max_toxic_score", 0)))
-        min_toxic_score = Decimal(str(row.get("min_toxic_score", 1)))
+        max_toxic_score = Decimal(str(row.get("max_toxic_score", 1)))
+        min_toxic_score = Decimal(str(row.get("min_toxic_score", 0)))
         
         # If deleted values not provided, recalculate from remaining records
         if deleted_toxic_score is None or deleted_filter_violations is None:
@@ -148,7 +148,7 @@ def update_summary_after_delete(
         # DynamoDB requires Decimal types for numeric values, not float
         # CSV adapter will handle Decimal conversion automatically
         from datetime import datetime
-from src.utils.constants import DATE_FORMAT
+        from src.utils.constants import DATE_FORMAT
         update_dict = {
             "sum_toxic_score": sum_toxic_score,  # Keep as Decimal for DynamoDB
             "max_toxic_score": max_toxic_score,  # Keep as Decimal for DynamoDB

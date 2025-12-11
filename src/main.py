@@ -71,7 +71,7 @@ def main(DB_READ, DB_WRITE, LLM_ENABLED=True):
 def _load_summary_statistics(DB_READ, session):
     """Load summary statistics from Summary_Sessions table at app start."""
     try:
-        db_handler = DatabaseHandler(db_read_allowed=DB_READ)
+        db_handler = DatabaseHandler(db_read_allowed=DB_READ, db_write_allowed=DB_READ)
         summary = db_handler.load_table("Summary_Sessions")
         
         if not summary.empty:
@@ -86,16 +86,40 @@ def _load_summary_statistics(DB_READ, session):
             # max_id fields no longer loaded - IDs are now hash-based and order-agnostic
             print(f"[OK] Summary statistics loaded. avg_toxic_score: {session.state['avg_toxic_score']}")
         else:
-            # Initialize with defaults if table is empty
-            session.state["sum_toxic_score"] = Decimal("0")
-            session.state["max_toxic_score"] = Decimal("0")
-            session.state["min_toxic_score"] = Decimal("1")
-            session.state["avg_toxic_score"] = Decimal("0.5")
-            session.state["sum_filter_violations"] = 0
-            session.state["avg_filter_violations"] = 0
-            session.state["count_guys"] = 0
-            # max_id fields no longer initialized - IDs are now hash-based
-            print("[WARNING] Summary_Sessions table is empty. Using default values.")
+            # Initialize Summary_Sessions with default values if table is empty
+            from src.utils.summary_initializer import initialize_summary_sessions
+            if initialize_summary_sessions(db_handler):
+                # Reload to get the initialized values
+                summary = db_handler.load_table("Summary_Sessions")
+                if not summary.empty:
+                    row = summary.iloc[0]
+                    session.state["sum_toxic_score"] = Decimal(str(row.get("sum_toxic_score", 0)))
+                    session.state["max_toxic_score"] = Decimal(str(row.get("max_toxic_score", 0)))
+                    session.state["min_toxic_score"] = Decimal(str(row.get("min_toxic_score", 0)))
+                    session.state["avg_toxic_score"] = Decimal(str(row.get("avg_toxic_score", 0)))
+                    session.state["sum_filter_violations"] = row.get("sum_filter_violations", 0)
+                    session.state["avg_filter_violations"] = row.get("avg_filter_violations", 0)
+                    session.state["count_guys"] = row.get("count_guys", 0)
+                    print(f"[OK] Summary_Sessions initialized and loaded. avg_toxic_score: {session.state['avg_toxic_score']}")
+                else:
+                    # Fallback to defaults if initialization failed
+                    session.state["sum_toxic_score"] = Decimal("0")
+                    session.state["max_toxic_score"] = Decimal("1")
+                    session.state["min_toxic_score"] = Decimal("0")
+                    session.state["avg_toxic_score"] = Decimal("0.5")
+                    session.state["sum_filter_violations"] = 0
+                    session.state["avg_filter_violations"] = 0
+                    session.state["count_guys"] = 0
+            else:
+                # Fallback to defaults if initialization failed
+                session.state["sum_toxic_score"] = Decimal("0")
+                session.state["max_toxic_score"] = Decimal("0")
+                session.state["min_toxic_score"] = Decimal("1")
+                session.state["avg_toxic_score"] = Decimal("0.5")
+                session.state["sum_filter_violations"] = 0
+                session.state["avg_filter_violations"] = 0
+                session.state["count_guys"] = 0
+                print("[WARNING] Summary_Sessions initialization failed. Using default values in session state.")
         
         db_handler.close()
     except (FileNotFoundError, Exception) as e:

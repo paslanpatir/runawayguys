@@ -64,7 +64,7 @@ class ResultsStep(BaseStep):
     def _load_summary_data(self):
         """Load summary statistics from database."""
         try:
-            db_handler = DatabaseHandler(db_read_allowed=self.db_read_allowed)
+            db_handler = DatabaseHandler(db_read_allowed=self.db_read_allowed, db_write_allowed=self.db_read_allowed)
             summary = db_handler.load_table("Summary_Sessions")
 
             if not summary.empty:
@@ -76,6 +76,29 @@ class ResultsStep(BaseStep):
                 self.session.state["sum_filter_violations"] = row.get("sum_filter_violations", 0)
                 self.session.state["avg_filter_violations"] = row.get("avg_filter_violations", 0)
                 self.session.state["count_guys"] = row.get("count_guys", 0)
+            else:
+                # Initialize Summary_Sessions with default values if table is empty
+                from src.utils.summary_initializer import initialize_summary_sessions
+                if initialize_summary_sessions(db_handler):
+                    # Reload to get the initialized values
+                    summary = db_handler.load_table("Summary_Sessions")
+                    if not summary.empty:
+                        row = summary.iloc[0]
+                        self.session.state["sum_toxic_score"] = Decimal(str(row.get("sum_toxic_score", 0)))
+                        self.session.state["max_toxic_score"] = Decimal(str(row.get("max_toxic_score", 0)))
+                        self.session.state["min_toxic_score"] = Decimal(str(row.get("min_toxic_score", 0)))
+                        self.session.state["avg_toxic_score"] = Decimal(str(row.get("avg_toxic_score", 0)))
+                        self.session.state["sum_filter_violations"] = row.get("sum_filter_violations", 0)
+                        self.session.state["avg_filter_violations"] = row.get("avg_filter_violations", 0)
+                        self.session.state["count_guys"] = row.get("count_guys", 0)
+                    else:
+                        # Fallback to defaults
+                        self.session.state["avg_toxic_score"] = Decimal("0.5")
+                        self.session.state["avg_filter_violations"] = 0
+                else:
+                    # Fallback to defaults if initialization failed
+                    self.session.state["avg_toxic_score"] = Decimal("0.5")
+                    self.session.state["avg_filter_violations"] = 0
         except Exception as e:
             st.warning(f"Could not load summary data: {e}")
             # Set defaults
@@ -621,8 +644,8 @@ class ResultsStep(BaseStep):
             
             # Get existing summary values (with defaults if not set)
             sum_toxic_score = Decimal(str(self.session.state.get("sum_toxic_score", 0)))
-            max_toxic_score = Decimal(str(self.session.state.get("max_toxic_score", 0)))
-            min_toxic_score = Decimal(str(self.session.state.get("min_toxic_score", 1)))
+            max_toxic_score = Decimal(str(self.session.state.get("max_toxic_score", 1)))
+            min_toxic_score = Decimal(str(self.session.state.get("min_toxic_score", 0)))
             count_guys = int(self.session.state.get("count_guys", 0))
             sum_filter_violations = int(self.session.state.get("sum_filter_violations", 0))
             
@@ -632,9 +655,9 @@ class ResultsStep(BaseStep):
             avg_toxic_score = Decimal("1.0") * sum_toxic_score / Decimal(str(count_guys))
             
             # Update max and min toxic scores
-            if max_toxic_score < cur_toxic_score:
+            if cur_toxic_score > max_toxic_score:
                 max_toxic_score = cur_toxic_score
-            if min_toxic_score > cur_toxic_score:
+            if cur_toxic_score < min_toxic_score:
                 min_toxic_score = cur_toxic_score
             
             # Update filter violations

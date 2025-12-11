@@ -275,8 +275,8 @@ class GoodbyeStep(BaseStep):
             
             # Get existing summary values (with defaults if not set)
             sum_toxic_score = Decimal(str(self.session.state.get("sum_toxic_score", 0)))
-            max_toxic_score = Decimal(str(self.session.state.get("max_toxic_score", 0)))
-            min_toxic_score = Decimal(str(self.session.state.get("min_toxic_score", 1)))
+            max_toxic_score = Decimal(str(self.session.state.get("max_toxic_score", 1)))
+            min_toxic_score = Decimal(str(self.session.state.get("min_toxic_score", 0)))
             count_guys = int(self.session.state.get("count_guys", 0))
             sum_filter_violations = int(self.session.state.get("sum_filter_violations", 0))
             
@@ -286,9 +286,9 @@ class GoodbyeStep(BaseStep):
             avg_toxic_score = Decimal("1.0") * sum_toxic_score / Decimal(str(count_guys))
             
             # Update max and min toxic scores
-            if max_toxic_score < cur_toxic_score:
+            if cur_toxic_score > max_toxic_score:
                 max_toxic_score = cur_toxic_score
-            if min_toxic_score > cur_toxic_score:
+            if cur_toxic_score < min_toxic_score:
                 min_toxic_score = cur_toxic_score
             
             # Update filter violations
