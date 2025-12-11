@@ -33,4 +33,5 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 groq>=0.4.0
 huggingface_hub>=0.20.0
+deep-translator>=1.11.4
 
