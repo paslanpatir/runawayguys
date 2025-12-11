@@ -1,10 +1,10 @@
 # Cold Start Notebooks
 
-This folder contains notebooks for initializing and managing DynamoDB tables.
+This folder contains Jupyter notebooks for initializing and managing DynamoDB tables.
 
 ## Notebooks
 
-### 1. `01_initialize_dynamodb_tables.py`
+### 1. `01_initialize_dynamodb_tables.ipynb`
 
 Initializes all DynamoDB output tables needed for the Runaway Guys application.
 
@@ -17,9 +17,9 @@ Initializes all DynamoDB output tables needed for the Runaway Guys application.
 - `Summary_Sessions` - Aggregated statistics across all sessions
 
 **Usage:**
-```bash
-python notebooks/cold_start/01_initialize_dynamodb_tables.py
-```
+1. Open the notebook in Jupyter Lab/Notebook
+2. Run all cells sequentially
+3. The notebook will check if tables exist and create them if needed
 
 **Features:**
 - Checks if tables already exist (won't recreate existing tables)
@@ -27,7 +27,7 @@ python notebooks/cold_start/01_initialize_dynamodb_tables.py
 - Uses on-demand billing (PAY_PER_REQUEST)
 - Provides detailed status information
 
-### 2. `02_manage_session_records.py`
+### 2. `02_manage_session_records.ipynb`
 
 Provides utilities to manage session records in DynamoDB/CSV.
 
@@ -36,58 +36,43 @@ Provides utilities to manage session records in DynamoDB/CSV.
 #### Delete a Session
 Deletes a session record from all related tables and updates Summary_Sessions.
 
+1. Set `USE_DYNAMODB = True` or `False` in the configuration cell
+2. Uncomment and modify the example cell:
 ```python
-from notebooks.cold_start.02_manage_session_records import delete_session
-
-# Delete a session
 delete_session(
-    user_id="user123",
-    boyfriend_name="John",
-    db_write_allowed=True  # Use DynamoDB (False for CSV)
+    user_id="your_user_id_here",
+    boyfriend_name="boyfriend_name_here",
+    db_write_allowed=USE_DYNAMODB
 )
-```
-
-**Command line:**
-```bash
-python notebooks/cold_start/02_manage_session_records.py delete <user_id> <boyfriend_name> [--csv]
 ```
 
 #### Update a Record
 Updates a record in a specific table by session_id.
 
+1. Uncomment and modify the example cell:
 ```python
-from notebooks.cold_start.02_manage_session_records import update_session_record
-
-# Update a record
 update_session_record(
     table_name="session_responses",
     session_id=123456789,
-    update_data={"toxic_score": 0.75, "filter_violations": 2},
-    db_write_allowed=True
+    update_data={
+        "toxic_score": 0.75,
+        "filter_violations": 2
+    },
+    db_write_allowed=USE_DYNAMODB
 )
-```
-
-**Command line:**
-```bash
-python notebooks/cold_start/02_manage_session_records.py update <table_name> <session_id> --field KEY VALUE [--field KEY VALUE ...] [--csv]
 ```
 
 #### List Sessions
 Lists all sessions or sessions for a specific user.
 
+1. To list all sessions, run the cell with:
 ```python
-from notebooks.cold_start.02_manage_session_records import list_sessions
-
-# List all sessions
-list_sessions(db_write_allowed=True)
-
-# List sessions for a specific user
-list_sessions(user_id="user123", db_write_allowed=True)
+list_sessions(db_write_allowed=USE_DYNAMODB)
 ```
 
-**Command line:**
-```bash
-python notebooks/cold_start/02_manage_session_records.py list [--user-id USER_ID] [--csv]
+2. To list sessions for a specific user, uncomment and modify:
+```python
+list_sessions(user_id="your_user_id_here", db_write_allowed=USE_DYNAMODB)
 ```
 
 ## Notes

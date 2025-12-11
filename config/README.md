@@ -1,6 +1,10 @@
 # Configuration Files
 
-This directory contains credential files for the application.
+This directory contains credential files and configuration files for the application.
+
+## Configuration Files
+
+- `dynamodb_tables.yaml` - DynamoDB table configurations (safe to commit to git)
 
 ## Setup Instructions
 

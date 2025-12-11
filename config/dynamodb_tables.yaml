@@ -1,0 +1,81 @@
+tables:
+- name: GetToKnowQuestions
+  key_schema:
+  - AttributeName: GTK_ID
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: GTK_ID
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: RedFlagCategories
+  key_schema:
+  - AttributeName: Category_ID
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: Category_ID
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: RedFlagFilters
+  key_schema:
+  - AttributeName: Filter_ID
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: Filter_ID
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: RedFlagQuestions
+  key_schema:
+  - AttributeName: ID
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: ID
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: Summary_Sessions
+  key_schema:
+  - AttributeName: summary_id
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: summary_id
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: session_feedback
+  key_schema:
+  - AttributeName: id
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: id
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: session_gtk_responses
+  key_schema:
+  - AttributeName: id
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: id
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: session_insights
+  key_schema:
+  - AttributeName: id
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: id
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: session_responses
+  key_schema:
+  - AttributeName: id
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: id
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
+- name: session_toxicity_rating
+  key_schema:
+  - AttributeName: id
+    KeyType: HASH
+  attribute_definitions:
+  - AttributeName: id
+    AttributeType: N
+  billing_mode: PAY_PER_REQUEST
