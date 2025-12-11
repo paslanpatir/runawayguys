@@ -145,15 +145,17 @@ def update_summary_after_delete(
         # from user_id + boyfriend_name, not sequentially
         
         # Prepare update dictionary
+        # DynamoDB requires Decimal types for numeric values, not float
+        # CSV adapter will handle Decimal conversion automatically
         from datetime import datetime
         update_dict = {
-            "sum_toxic_score": float(sum_toxic_score),
-            "max_toxic_score": float(max_toxic_score),
-            "min_toxic_score": float(min_toxic_score),
-            "avg_toxic_score": float(avg_toxic_score),
-            "sum_filter_violations": sum_filter_violations,
-            "avg_filter_violations": float(avg_filter_violations),
-            "count_guys": count_guys,
+            "sum_toxic_score": sum_toxic_score,  # Keep as Decimal for DynamoDB
+            "max_toxic_score": max_toxic_score,  # Keep as Decimal for DynamoDB
+            "min_toxic_score": min_toxic_score,  # Keep as Decimal for DynamoDB
+            "avg_toxic_score": avg_toxic_score,  # Keep as Decimal for DynamoDB
+            "sum_filter_violations": sum_filter_violations,  # int is fine
+            "avg_filter_violations": avg_filter_violations,  # Keep as Decimal for DynamoDB
+            "count_guys": count_guys,  # int is fine
             # max_id fields kept for backward compatibility but set to 0 (no longer tracked)
             "max_id_session_responses": 0,
             "max_id_gtk_responses": 0,

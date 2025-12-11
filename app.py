@@ -13,8 +13,8 @@ st.set_page_config(
 # Database access flags
 # Set to False for local testing (uses CSV files)
 # Set to True if you have AWS credentials configured
-DB_READ = False  # Read from CSV files locally
-DB_WRITE = False  # Write to CSV files locally
+DB_READ = True  # Read from DynamoDB (requires AWS credentials in config/aws_credentials.txt)
+DB_WRITE = True  # Write to DynamoDB (requires AWS credentials in config/aws_credentials.txt)
 
 # LLM feature flag
 # Set to False to disable AI insights generation
@@ -23,7 +23,7 @@ LLM_ENABLED = True  # Enable LLM features (requires HF_API_TOKEN or config/llm_c
 
 # DEBUG MODE: Set to True to skip survey steps and go directly to results page with mock data
 # Or add ?debug=true to the URL
-DEBUG_MODE = True  # Set to True to use debug mode with mock data
+DEBUG_MODE = False  # Set to False for normal flow, True for testing with mock data
 
 if __name__ == "__main__":
     import os

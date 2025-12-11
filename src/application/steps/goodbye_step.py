@@ -407,6 +407,8 @@ class GoodbyeStep(BaseStep):
             )
             
             # Prepare record data
+            # DynamoDB requires Decimal types for numeric values, not float
+            from decimal import Decimal
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             record_data = {
                 "id": session_id,
@@ -416,8 +418,8 @@ class GoodbyeStep(BaseStep):
                 "email": email or "",
                 "boyfriend_name": bf_name,
                 "language": language,
-                "toxic_score": float(toxic_score),
-                "avg_toxic_score": float(avg_toxic_score),
+                "toxic_score": Decimal(str(toxic_score)),  # Use Decimal for DynamoDB
+                "avg_toxic_score": Decimal(str(avg_toxic_score)),  # Use Decimal for DynamoDB
                 "filter_violations": filter_violations,
                 "violated_filter_questions": violated_filter_questions_text,
                 "redflag_questions": redflag_questions_text,
@@ -438,13 +440,21 @@ class GoodbyeStep(BaseStep):
             # Save to database (CSV or DynamoDB) - update if exists
             try:
                 existing = db_handler.load_table("session_insights")
-                if not existing.empty and session_id in existing["id"].values:
-                    db_handler.update_record("session_insights", {"id": session_id}, record_data)
-                    print(f"[OK] Updated existing session_insights record (id: {session_id})")
+                if not existing.empty:
+                    # Ensure id column is numeric for proper comparison
+                    import pandas as pd
+                    existing["id"] = pd.to_numeric(existing["id"], errors='coerce')
+                    if session_id in existing["id"].values:
+                        db_handler.update_record("session_insights", {"id": session_id}, record_data)
+                        print(f"[OK] Updated existing session_insights record (id: {session_id})")
+                    else:
+                        db_handler.add_record("session_insights", record_data)
+                        print(f"[OK] Created new session_insights record (id: {session_id})")
                 else:
                     db_handler.add_record("session_insights", record_data)
                     print(f"[OK] Created new session_insights record (id: {session_id})")
-            except Exception:
+            except Exception as e:
+                print(f"[WARNING] Error checking existing record, trying to add: {e}")
                 db_handler.add_record("session_insights", record_data)
                 print(f"[OK] Session insights saved to database (id: {session_id})")
             
