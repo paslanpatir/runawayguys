@@ -5,6 +5,7 @@ from src.application.base_step import BaseStep
 from src.adapters.email.email_adapter import send_survey_report
 from src.adapters.database.database_handler import DatabaseHandler
 from src.utils.redflag_utils import get_violated_filter_questions
+from datetime import datetime
 
 
 class ReportStep(BaseStep):
@@ -35,115 +36,94 @@ class ReportStep(BaseStep):
                     if not summary.empty:
                         row = summary.iloc[0]
                         avg_toxic_score_decimal = Decimal(str(row.get("avg_toxic_score", 0)))
-                        # If avg_toxic_score is 0, try to calculate from session_responses
-                        if avg_toxic_score_decimal == 0:
-                            print("[DEBUG] avg_toxic_score is 0 in Summary_Sessions, calculating from session_responses")
-                            session_responses = db_handler.load_table("session_responses")
-                            if not session_responses.empty and "toxic_score" in session_responses.columns:
-                                avg_toxic_score_decimal = Decimal(str(session_responses["toxic_score"].mean()))
-                                print(f"[DEBUG] Calculated avg_toxic_score from session_responses: {avg_toxic_score_decimal}")
-                            else:
-                                avg_toxic_score_decimal = Decimal("0.5")
-                        self.session.state["avg_toxic_score"] = avg_toxic_score_decimal
                     else:
-                        # Summary_Sessions is empty, try to calculate from session_responses
-                        print("[DEBUG] Summary_Sessions is empty, calculating avg_toxic_score from session_responses")
+                        # Calculate from session_responses as fallback
                         session_responses = db_handler.load_table("session_responses")
                         if not session_responses.empty and "toxic_score" in session_responses.columns:
                             avg_toxic_score_decimal = Decimal(str(session_responses["toxic_score"].mean()))
-                            print(f"[DEBUG] Calculated avg_toxic_score from session_responses: {avg_toxic_score_decimal}")
                         else:
                             avg_toxic_score_decimal = Decimal("0.5")
-                        self.session.state["avg_toxic_score"] = avg_toxic_score_decimal
+                    
+                    db_handler.close()
                 except Exception as e:
                     print(f"[WARNING] Could not load avg_toxic_score from database: {e}")
                     avg_toxic_score_decimal = Decimal("0.5")
-                    self.session.state["avg_toxic_score"] = avg_toxic_score_decimal
-            else:
-                # Use existing value from session state
-                avg_toxic_score_decimal = avg_toxic_score_decimal if isinstance(avg_toxic_score_decimal, Decimal) else Decimal(str(avg_toxic_score_decimal))
             
-            # Convert to float
-            if isinstance(avg_toxic_score_decimal, Decimal):
-                avg_toxic_score = float(avg_toxic_score_decimal)
-            else:
-                avg_toxic_score = float(avg_toxic_score_decimal) if avg_toxic_score_decimal else 0.5
+            # Get violated filter questions for email
+            violated_filter_questions = get_violated_filter_questions(
+                self.session.state.get("filter_responses", {}),
+                self.session.state.get("filter_questions", []),
+                language,
+                use_english_for_llm=False  # Use display language for email
+            )
             
-            print(f"[DEBUG] Email - avg_toxic_score: {avg_toxic_score}")
-            
-            # Get violated filter questions
-            violated_filter_questions = None
-            filter_responses = self.session.state.get("filter_responses", {})
-            filter_questions = self.session.state.get("randomized_filters")
-            
-            if filter_responses and filter_questions:
-                violated_filter_questions = get_violated_filter_questions(
-                    filter_responses=filter_responses,
-                    questions=filter_questions,
-                    language=language,
-                )
-            
-            # Calculate category scores for email
+            # Get category scores for email
             category_scores = None
-            redflag_responses = self.session.state.get("redflag_responses")
-            questions = self.session.state.get("randomized_questions")
-            
-            if redflag_responses and questions:
+            try:
                 from src.utils.category_analysis import calculate_category_toxicity_scores
-                from src.adapters.database.question_repository import QuestionRepository
+                redflag_responses = self.session.state.get("redflag_responses", {})
+                redflag_questions = self.session.state.get("redflag_questions", [])
                 
-                # Load category names from RedFlagCategories table based on language
-                category_names_map = {}
-                try:
-                    db_read_allowed = self.session.state.get("db_read_allowed", False)
-                    db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
-                    categories_df = db_handler.load_table("RedFlagCategories")
-                    if not categories_df.empty:
-                        for _, row in categories_df.iterrows():
-                            cat_id = int(row["Category_ID"])
-                            if language == "TR":
-                                cat_name = str(row.get("Category_Name_TR", ""))
-                            else:
-                                cat_name = str(row.get("Category_Name_EN", ""))
-                            if cat_name:
-                                category_names_map[cat_id] = cat_name
-                except Exception as e:
-                    print(f"[WARNING] Could not load category names for email: {e}")
-                
-                # Calculate category scores
-                category_scores = calculate_category_toxicity_scores(
-                    redflag_responses, questions, language, category_names_map
-                )
+                if redflag_responses and redflag_questions:
+                    category_scores = calculate_category_toxicity_scores(
+                        redflag_responses,
+                        redflag_questions,
+                        language=language
+                    )
+            except Exception as e:
+                print(f"[WARNING] Could not calculate category scores for email: {e}")
             
-            session_data = {
-                "user_details": self.session.user_details,
-                "toxic_score": self.session.state.get("toxic_score", 0),
-                "avg_toxic_score": avg_toxic_score,
+            # Prepare email data
+            email_data = {
+                "user_name": self.session.user_details.get("name", "User"),
+                "boyfriend_name": self.session.user_details.get("bf_name", "Your boyfriend"),
+                "toxic_score": float(self.session.state.get("toxic_score", 0)),
+                "avg_toxic_score": float(avg_toxic_score_decimal),
                 "filter_violations": self.session.state.get("filter_violations", 0),
                 "violated_filter_questions": violated_filter_questions,
-                "category_scores": category_scores,  # Add category scores
+                "language": language,
+                "category_scores": category_scores,
             }
-            # Only include insights if LLM is enabled
+            
+            # Include AI insights if available
             if llm_enabled:
-                session_data["ai_insights"] = self.session.state.get("ai_insights")
+                ai_insights = self.session.state.get("ai_insights")
+                if ai_insights:
+                    email_data["ai_insights"] = ai_insights
             
             # Send email
-            success = send_survey_report(
-                recipient_email=email,
-                session_data=session_data,
-                language=language,
-            )
+            success = send_survey_report(email, email_data)
             
             if success:
                 st.success(msg.get("report_sent_to_msg", email=email))
                 self.session.state["report_sent"] = True
+                
+                # Wait for user to acknowledge before proceeding
+                if not self.session.state.get("report_acknowledged"):
+                    if st.button(msg.get("continue_msg")):
+                        self.session.state["report_acknowledged"] = True
+                        st.rerun()
+                    return False  # Stay on report step until acknowledged
             else:
                 st.warning("Email could not be sent. Please check your email configuration.")
                 self.session.state["report_sent"] = False
+                # Still allow user to continue even if email failed
+                if not self.session.state.get("report_acknowledged"):
+                    if st.button(msg.get("continue_msg")):
+                        self.session.state["report_acknowledged"] = True
+                        st.rerun()
+                    return False
         else:
             # No email requested, skip
             self.session.state["report_sent"] = False
             st.info(msg.get("report_skipped_msg"))
+            
+            # Still show a continue button for consistency
+            if not self.session.state.get("report_acknowledged"):
+                if st.button(msg.get("continue_msg")):
+                    self.session.state["report_acknowledged"] = True
+                    st.rerun()
+                return False
         
+        # After acknowledgment, proceed to next step
         return True
-

@@ -59,10 +59,10 @@ def main(DB_READ, DB_WRITE, LLM_ENABLED=True):
         RedFlagQuestionsStep(),
         GTKQuestionsStep(),
         ToxicityOpinionStep(),
-        ResultsStep(DB_READ),
-        FeedbackStep(),
+        ResultsStep(DB_READ, DB_WRITE),
+        FeedbackStep(DB_WRITE),
         ReportStep(),
-        GoodbyeStep(DB_WRITE),
+        GoodbyeStep(),
     ]
 
     controller = SurveyController(steps)

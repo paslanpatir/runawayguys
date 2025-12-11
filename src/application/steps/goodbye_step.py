@@ -28,13 +28,6 @@ class GoodbyeStep(BaseStep):
         st.markdown(msg.get("goodbye_message", name=name))
         st.balloons()
 
-        # Save data only once (check if already saved)
-        if not self.session.state.get("data_saved", False):
-            # Always save data - backend is chosen based on db_write_allowed flag
-            # If False, saves to CSV; if True, saves to DynamoDB
-            self._save_all_data()
-            self.session.state["data_saved"] = True
-
         # Show contact information
         st.divider()
         st.info(msg.get("contact_email_info_msg"))
@@ -50,41 +43,42 @@ class GoodbyeStep(BaseStep):
         # Don't return True immediately - stay on this page until user clicks "Start New Survey"
         return False
 
-    def _save_all_data(self):
-        """Save all session data to database (CSV or DynamoDB based on flag)."""
-        # Always create handler - it will use CSV if db_write_allowed=False, DynamoDB if True
+    def _save_feedback_only(self):
+        """Save only feedback to database (CSV or DynamoDB based on flag)."""
+        # Main data is saved in report_step, only save feedback here
         db_handler = DatabaseHandler(db_write_allowed=self.db_write_allowed)
 
         try:
-            # Save session responses
-            if self.session.state.get("redflag_responses") and self.session.state.get("filter_responses"):
-                self._save_session_response(db_handler)
-                st.success(self.msg.get("response_saved_msg"))
-
-            # Save GTK responses
-            if self.session.state.get("extra_questions_responses"):
-                self._save_gtk_response(db_handler)
-
-            # Save toxicity rating
-            if self.session.state.get("toxicity_rating"):
-                self._save_toxicity_rating(db_handler)
-
             # Save feedback
             if self.session.state.get("feedback_rating"):
                 self._save_feedback(db_handler)
-            
-            # Update Summary_Sessions table after saving all data
-            if self.session.state.get("redflag_responses") and self.session.state.get("filter_responses"):
-                self._update_summary_statistics(db_handler)
-            
-            # Save session insights if available
-            if self.session.state.get("insight_metadata"):
-                self._save_session_insights(db_handler)
+                st.success(self.msg.get("feedback_saved_msg", default="Feedback saved successfully!"))
 
             db_handler.close()
         except Exception as e:
             msg = self.msg
             st.error(msg.get("response_error_msg", e=str(e)))
+    
+    # Keep these methods for backward compatibility (used by report_step)
+    def _save_session_response(self, db_handler):
+        """Kept for backward compatibility - now saved in report_step."""
+        pass
+    
+    def _save_gtk_response(self, db_handler):
+        """Kept for backward compatibility - now saved in report_step."""
+        pass
+    
+    def _save_toxicity_rating(self, db_handler):
+        """Kept for backward compatibility - now saved in report_step."""
+        pass
+    
+    def _update_summary_statistics(self, db_handler):
+        """Kept for backward compatibility - now saved in report_step."""
+        pass
+    
+    def _save_session_insights(self, db_handler):
+        """Kept for backward compatibility - now saved in report_step."""
+        pass
 
     def _save_session_response(self, db_handler):
         """Save main session response data using SessionResponse value object."""
