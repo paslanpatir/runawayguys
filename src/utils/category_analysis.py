@@ -27,22 +27,9 @@ def calculate_category_toxicity_scores(
     # Create mapping from question_id to question object
     question_map = {f"Q{q.question_id}": q for q in questions}
     
-    # Debug: Check question categories (ASCII-safe)
-    categories_found = set()
-    questions_without_category = 0
-    for q in questions[:10]:  # Check first 10 questions
-        if q.category_name:
-            categories_found.add(q.category_name)
-        else:
-            questions_without_category += 1
-    # Print only count to avoid Unicode issues on Windows
-    print(f"[DEBUG] Sample categories found in questions: {len(categories_found)} categories")
-    print(f"[DEBUG] Questions without category (first 10): {questions_without_category}")
-    
     # Group responses by category with weights
     category_weighted_scores: Dict[str, List[Tuple[float, float]]] = {}  # (rating, weight)
     category_counts: Dict[str, int] = {}
-    responses_without_category = 0
     
     for q_id, rating in redflag_responses.items():
         # Skip NaN or None values
@@ -73,14 +60,6 @@ def calculate_category_toxicity_scores(
                 weight = float(question.weight) if question.weight else 1.0
                 category_weighted_scores[category].append((rating, weight))
                 category_counts[category] += 1
-            else:
-                responses_without_category += 1
-        else:
-            print(f"[DEBUG] Question not found for {q_id}")
-    
-    print(f"[DEBUG] Responses without category: {responses_without_category}")
-    # Print only count to avoid Unicode issues on Windows
-    print(f"[DEBUG] Categories with scores: {len(category_weighted_scores)} categories")
     
     # Calculate weighted averages
     result = {}

@@ -20,7 +20,14 @@ class CSVAdapter(DatabasePort):
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"CSV file not found: {file_path}")
 
-        return pd.read_csv(file_path, sep=CSV_SEPARATOR)
+        df = pd.read_csv(file_path, sep=CSV_SEPARATOR)
+        
+        # Only reorder columns for session response tables that have Q/F columns
+        if self._should_reorder_columns(table_name, list(df.columns)):
+            reordered_columns = self._reorder_columns(list(df.columns))
+            df = df.reindex(columns=reordered_columns)
+        
+        return df
 
     def add_record(self, table_name: str, newdata_dict: dict) -> bool:
         """Append record into semicolon-separated CSV in data/.
@@ -46,8 +53,11 @@ class CSVAdapter(DatabasePort):
                     new_row[col] = val
                     existing_columns.append(col)
             
-            # Reorder columns to ensure Q1-Q75 and F1-F15 are in numerical order
-            reordered_columns = self._reorder_columns(existing_columns)
+            # Reorder columns only if this table needs Q/F column reordering
+            if self._should_reorder_columns(table_name, existing_columns):
+                reordered_columns = self._reorder_columns(existing_columns)
+            else:
+                reordered_columns = existing_columns
             
             # Create DataFrame with properly ordered columns
             temp = pd.DataFrame([new_row], columns=reordered_columns)
@@ -55,14 +65,17 @@ class CSVAdapter(DatabasePort):
             existing_data = existing_data.reindex(columns=reordered_columns)
             updated_data = pd.concat([existing_data, temp], ignore_index=True)
         else:
-            # First record: use the order from newdata_dict, but reorder Q and F columns
+            # First record: use the order from newdata_dict, but reorder Q and F columns if needed
             columns_list = list(newdata_dict.keys())
-            reordered_columns = self._reorder_columns(columns_list)
+            if self._should_reorder_columns(table_name, columns_list):
+                reordered_columns = self._reorder_columns(columns_list)
+            else:
+                reordered_columns = columns_list
             temp = pd.DataFrame([newdata_dict], columns=reordered_columns)
             updated_data = temp
 
         updated_data.to_csv(file_path, sep=CSV_SEPARATOR, index=False)
-        print(f"[OK] Data saved to CSV: {file_path}")
+        # Data saved to CSV
         return True
 
     def update_record(self, table_name: str, key_dict: dict, update_dict: dict) -> None:
@@ -81,26 +94,28 @@ class CSVAdapter(DatabasePort):
             for k, v in update_dict.items():
                 df.loc[mask, k] = v
             
-            # Reorder columns to ensure Q1-Q75 and F1-F15 are in numerical order
-            reordered_columns = self._reorder_columns(list(df.columns))
-            df = df.reindex(columns=reordered_columns)
+            # Reorder columns only if this table needs Q/F column reordering
+            if self._should_reorder_columns(table_name, list(df.columns)):
+                reordered_columns = self._reorder_columns(list(df.columns))
+                df = df.reindex(columns=reordered_columns)
             
             df.to_csv(file_path, sep=CSV_SEPARATOR, index=False)
-            print(f"[OK] Record updated in CSV: {file_path}")
+            # Record updated in CSV
         else:
-            print(f"[WARNING] No matching record found in {file_path} for key {key_dict}")
+            # No matching record found
+            pass
 
     def delete_record(self, table_name: str, record_id: int, id_column: str = "id") -> bool:
         """Delete a record from CSV by ID."""
         file_path = os.path.join(self.data_dir, f"{table_name}.csv")
         if not os.path.exists(file_path):
-            print(f"[WARNING] CSV file not found: {file_path}")
+            # CSV file not found
             return False
 
         df = pd.read_csv(file_path, sep=CSV_SEPARATOR)
         
         if id_column not in df.columns:
-            print(f"[WARNING] Column '{id_column}' not found in {table_name}")
+            # Column not found
             return False
 
         # Find and delete the record
@@ -110,12 +125,32 @@ class CSVAdapter(DatabasePort):
 
         if deleted_count > 0:
             df.to_csv(file_path, sep=CSV_SEPARATOR, index=False)
-            print(f"[OK] Deleted record with {id_column}={record_id} from {table_name}")
+            # Deleted record successfully
             return True
         else:
-            print(f"[WARNING] No record found with {id_column}={record_id} in {table_name}")
+            # No record found
             return False
 
+    def _should_reorder_columns(self, table_name: str, columns: list) -> bool:
+        """
+        Check if columns should be reordered for this table.
+        Only session response tables with Q/F columns need reordering.
+        """
+        # Session response tables that have Q/F columns
+        session_tables_with_qf = [
+            "session_responses",
+            "session_gtk_responses",  # Has GTK columns, but we'll check for Q/F
+        ]
+        
+        # Only reorder if it's a session table AND has Q or F columns
+        if table_name in session_tables_with_qf:
+            # Check if table has Q or F columns
+            has_q_columns = any(col.startswith('Q') and len(col) > 1 and col[1:].isdigit() for col in columns)
+            has_f_columns = any(col.startswith('F') and len(col) > 1 and col[1:].isdigit() for col in columns)
+            return has_q_columns or has_f_columns
+        
+        return False
+    
     def _reorder_columns(self, columns: list) -> list:
         """
         Reorder columns to ensure Q1-Q75 and F1-F15 are in numerical order.

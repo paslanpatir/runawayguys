@@ -54,9 +54,7 @@ class ResultsStep(BaseStep):
 
         if st.button(msg.get("survey_complete_msg")):
             self.session.state["survey_completed"] = True
-            # Show toast message when survey is completed
-            saved_msg = self.msg.get("response_saved_msg")
-            st.toast(saved_msg, icon="🎉")
+            # Don't show saved message again - it was already shown when data was saved
             st.rerun()
 
         return self.session.state.get("survey_completed") is True
@@ -393,25 +391,15 @@ class ResultsStep(BaseStep):
             # We match by filter_id, so we don't need the randomized order
             filter_questions = None
             if filter_responses:
-                print(f"[DEBUG] Loading filter questions from database to match violations...")
-                print(f"[DEBUG] Filter responses keys: {list(filter_responses.keys())[:10]}")
                 try:
                     db_read_allowed = self.session.state.get("db_read_allowed", False)
                     db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
                     repository = QuestionRepository(db_handler)
                     filter_questions = repository.get_filter_questions()
-                    print(f"[DEBUG] Loaded {len(filter_questions) if filter_questions else 0} filter questions from database")
-                    if filter_questions:
-                        # Show first few question IDs for debugging
-                        first_ids = [f"F{q.filter_id}" for q in filter_questions[:5]]
-                        print(f"[DEBUG] First 5 question IDs: {first_ids}")
-                    else:
-                        print(f"[WARNING] Failed to load filter questions from database!")
                     db_handler.close()
                 except Exception as e:
-                    print(f"[ERROR] Exception loading filter questions: {e}")
-                    import traceback
-                    print(f"[ERROR] Traceback: {traceback.format_exc()}")
+                    # Silently fail - violations won't be shown but app continues
+                    pass
             
             if filter_responses and filter_questions:
                 # Always use English versions for LLM (better performance)
@@ -549,13 +537,13 @@ class ResultsStep(BaseStep):
                 existing["id"] = pd.to_numeric(existing["id"], errors='coerce')
                 if session_id in existing["id"].values:
                     db_handler.update_record("session_responses", {"id": session_id}, record_dict)
-                    print(f"[OK] Updated existing session_response record (id: {session_id})")
+                    # Updated existing session_response record
                 else:
                     db_handler.add_record("session_responses", record_dict)
-                    print(f"[OK] Created new session_response record (id: {session_id})")
+                    # Created new session_response record
             else:
                 db_handler.add_record("session_responses", record_dict)
-                print(f"[OK] Created new session_response record (id: {session_id})")
+                # Created new session_response record
         except Exception:
             db_handler.add_record("session_responses", record_dict)
     
@@ -593,13 +581,13 @@ class ResultsStep(BaseStep):
                 existing["id"] = pd.to_numeric(existing["id"], errors='coerce')
                 if session_id in existing["id"].values:
                     db_handler.update_record("session_gtk_responses", {"id": session_id}, record_dict)
-                    print(f"[OK] Updated existing gtk_response record (id: {session_id})")
+                    # Updated existing gtk_response record
                 else:
                     db_handler.add_record("session_gtk_responses", record_dict)
-                    print(f"[OK] Created new gtk_response record (id: {session_id})")
+                    # Created new gtk_response record
             else:
                 db_handler.add_record("session_gtk_responses", record_dict)
-                print(f"[OK] Created new gtk_response record (id: {session_id})")
+                # Created new gtk_response record
         except Exception:
             db_handler.add_record("session_gtk_responses", record_dict)
     
@@ -637,13 +625,13 @@ class ResultsStep(BaseStep):
                 existing["id"] = pd.to_numeric(existing["id"], errors='coerce')
                 if session_id in existing["id"].values:
                     db_handler.update_record("session_toxicity_rating", {"id": session_id}, record_dict)
-                    print(f"[OK] Updated existing toxicity_rating record (id: {session_id})")
+                    # Updated existing toxicity_rating record
                 else:
                     db_handler.add_record("session_toxicity_rating", record_dict)
-                    print(f"[OK] Created new toxicity_rating record (id: {session_id})")
+                    # Created new toxicity_rating record
             else:
                 db_handler.add_record("session_toxicity_rating", record_dict)
-                print(f"[OK] Created new toxicity_rating record (id: {session_id})")
+                # Created new toxicity_rating record
         except Exception:
             db_handler.add_record("session_toxicity_rating", record_dict)
     
@@ -746,16 +734,16 @@ class ResultsStep(BaseStep):
                     # Create initial record
                     update_dict["summary_id"] = 1
                     db_handler.add_record("Summary_Sessions", update_dict)
-                    print("[OK] Created initial Summary_Sessions record")
+                    # Created initial Summary_Sessions record
                 else:
                     # Update existing record (summary_id = 1)
                     db_handler.update_record("Summary_Sessions", {"summary_id": 1}, update_dict)
-                    print(f"[OK] Updated Summary_Sessions. New avg_toxic_score: {float(avg_toxic_score):.4f}")
+                    # Updated Summary_Sessions successfully
             except (FileNotFoundError, Exception) as e:
                 # Table doesn't exist or error loading, create it
                 update_dict["summary_id"] = 1
                 db_handler.add_record("Summary_Sessions", update_dict)
-                print(f"[OK] Created Summary_Sessions table with initial record (error: {e})")
+                # Created Summary_Sessions table with initial record
             
             # Update session state with new values
             self.session.state["sum_toxic_score"] = sum_toxic_score
@@ -771,7 +759,8 @@ class ResultsStep(BaseStep):
             self.session.state["max_id_session_toxicity_rating"] = max_id_session_toxicity_rating
             
         except Exception as e:
-            print(f"[ERROR] Failed to update Summary_Sessions: {e}")
+            # Failed to update Summary_Sessions
+            pass
     
     def _save_session_insights(self, db_handler):
         """Save session insights to database (CSV or DynamoDB)."""
@@ -852,16 +841,17 @@ class ResultsStep(BaseStep):
                     existing["id"] = pd.to_numeric(existing["id"], errors='coerce')
                     if session_id in existing["id"].values:
                         db_handler.update_record("session_insights", {"id": session_id}, record_data)
-                        print(f"[OK] Updated existing session_insights record (id: {session_id})")
+                        # Updated existing session_insights record
                     else:
                         db_handler.add_record("session_insights", record_data)
-                        print(f"[OK] Created new session_insights record (id: {session_id})")
+                        # Created new session_insights record
                 else:
                     db_handler.add_record("session_insights", record_data)
-                    print(f"[OK] Created new session_insights record (id: {session_id})")
+                    # Created new session_insights record
             except Exception as e:
                 db_handler.add_record("session_insights", record_data)
             
         except Exception as e:
-            print(f"[ERROR] Failed to save session insights: {e}")
+            # Failed to save session insights
+            pass
 

@@ -84,7 +84,7 @@ def _load_summary_statistics(DB_READ, session):
             session.state["avg_filter_violations"] = row.get("avg_filter_violations", 0)
             session.state["count_guys"] = row.get("count_guys", 0)
             # max_id fields no longer loaded - IDs are now hash-based and order-agnostic
-            print(f"[OK] Summary statistics loaded. avg_toxic_score: {session.state['avg_toxic_score']}")
+            # Summary statistics loaded successfully
         else:
             # Initialize Summary_Sessions with default values if table is empty
             from src.utils.summary_initializer import initialize_summary_sessions
@@ -100,7 +100,7 @@ def _load_summary_statistics(DB_READ, session):
                     session.state["sum_filter_violations"] = row.get("sum_filter_violations", 0)
                     session.state["avg_filter_violations"] = row.get("avg_filter_violations", 0)
                     session.state["count_guys"] = row.get("count_guys", 0)
-                    print(f"[OK] Summary_Sessions initialized and loaded. avg_toxic_score: {session.state['avg_toxic_score']}")
+                    # Summary_Sessions initialized successfully
                 else:
                     # Fallback to defaults if initialization failed
                     session.state["sum_toxic_score"] = Decimal("0")
@@ -119,11 +119,11 @@ def _load_summary_statistics(DB_READ, session):
                 session.state["sum_filter_violations"] = 0
                 session.state["avg_filter_violations"] = 0
                 session.state["count_guys"] = 0
-                print("[WARNING] Summary_Sessions initialization failed. Using default values in session state.")
+                # Summary_Sessions initialization failed, using defaults
         
         db_handler.close()
     except (FileNotFoundError, Exception) as e:
-        print(f"[WARNING] Could not load summary statistics: {e}")
+        # Could not load summary statistics, using defaults
         # Set defaults on error (table doesn't exist yet or other error)
         session.state["sum_toxic_score"] = Decimal("0")
         session.state["max_toxic_score"] = Decimal("1")  # Start at 1 (max possible)

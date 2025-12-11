@@ -123,11 +123,9 @@ def setup_mock_data_for_testing():
             
             st.session_state.redflag_responses = actual_responses
             st.session_state.toxic_score = toxic_score_float
-            print(f"[DEBUG] Loaded {len(questions)} actual redflag questions from database")
-            print(f"[DEBUG] Created responses for {len(actual_responses)} redflag questions")
-            print(f"[DEBUG] Calculated toxic_score: {toxic_score_float:.4f} from {applicable_questions} applicable questions")
+            # Loaded actual redflag questions and calculated toxic score
         else:
-            print("[WARNING] No redflag questions found in database. Using mock questions.")
+            # No redflag questions found, using mock questions
             # Fallback to mock if database is empty
             from src.domain.value_objects import RedFlagQuestion
             mock_questions = [
@@ -179,10 +177,9 @@ def setup_mock_data_for_testing():
             
             st.session_state.filter_responses = filter_responses
             st.session_state.filter_violations = violations
-            print(f"[DEBUG] Loaded {len(randomized_filters)} actual filter questions from database")
-            print(f"[DEBUG] Created {violations} filter violations out of {len(filter_responses)} responses")
+            # Loaded actual filter questions and created violations
         else:
-            print("[WARNING] No filter questions found in database. Using mock filter responses.")
+            # No filter questions found, using mock responses
             # Fallback to mock if database is empty
             st.session_state.filter_responses = {
                 "F1": 1,
@@ -191,8 +188,7 @@ def setup_mock_data_for_testing():
             st.session_state.filter_violations = 2
             
     except Exception as e:
-        print(f"[ERROR] Failed to load questions from database: {e}")
-        print("[WARNING] Using mock questions as fallback.")
+        # Failed to load questions, using mock data as fallback
         # Fallback to minimal mock if database fails
         from src.domain.value_objects import RedFlagQuestion
         mock_questions = [
@@ -211,7 +207,7 @@ def setup_mock_data_for_testing():
         }
         st.session_state.filter_violations = 2
     
-    print("[DEBUG] Mock data set up for testing. You can now go directly to results page.")
+    # Mock data set up for testing
 
 
 def is_debug_mode() -> bool:

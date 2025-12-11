@@ -46,32 +46,81 @@ class ReportStep(BaseStep):
                     
                     db_handler.close()
                 except Exception as e:
-                    print(f"[WARNING] Could not load avg_toxic_score from database: {e}")
+                    # Could not load avg_toxic_score from database
                     avg_toxic_score_decimal = Decimal("0.5")
             
             # Get violated filter questions for email
-            violated_filter_questions = get_violated_filter_questions(
-                self.session.state.get("filter_responses", {}),
-                self.session.state.get("filter_questions", []),
-                language,
-                use_english_for_llm=False  # Use display language for email
-            )
+            violated_filter_questions = None
+            filter_responses = self.session.state.get("filter_responses", {})
+            if filter_responses:
+                try:
+                    # Load filter questions from database if not in session state
+                    filter_questions = self.session.state.get("randomized_filters")
+                    if not filter_questions:
+                        db_read_allowed = self.session.state.get("db_read_allowed", False)
+                        db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
+                        from src.adapters.database.question_repository import QuestionRepository
+                        repository = QuestionRepository(db_handler)
+                        filter_questions = repository.get_filter_questions()
+                        db_handler.close()
+                    
+                    if filter_questions:
+                        violated_filter_questions = get_violated_filter_questions(
+                            filter_responses,
+                            filter_questions,
+                            language,
+                            use_english_for_llm=False  # Use display language for email
+                        )
+                except Exception as e:
+                    # Could not get violated filter questions for email
+                    pass
             
             # Get category scores for email
             category_scores = None
             try:
                 from src.utils.category_analysis import calculate_category_toxicity_scores
                 redflag_responses = self.session.state.get("redflag_responses", {})
-                redflag_questions = self.session.state.get("redflag_questions", [])
-                
-                if redflag_responses and redflag_questions:
-                    category_scores = calculate_category_toxicity_scores(
-                        redflag_responses,
-                        redflag_questions,
-                        language=language
-                    )
+                if redflag_responses:
+                    # Load redflag questions from database if not in session state
+                    redflag_questions = self.session.state.get("randomized_questions")
+                    if not redflag_questions:
+                        db_read_allowed = self.session.state.get("db_read_allowed", False)
+                        db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
+                        from src.adapters.database.question_repository import QuestionRepository
+                        repository = QuestionRepository(db_handler)
+                        redflag_questions = repository.get_redflag_questions()
+                        db_handler.close()
+                    
+                    if redflag_questions:
+                        # Get category names map for language-specific names
+                        category_names_map = {}
+                        try:
+                            db_read_allowed = self.session.state.get("db_read_allowed", False)
+                            db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
+                            categories_df = db_handler.load_table("RedFlagCategories")
+                            if not categories_df.empty:
+                                for _, row in categories_df.iterrows():
+                                    cat_id = int(row["Category_ID"])
+                                    if language == "TR":
+                                        cat_name = str(row.get("Category_Name_TR", ""))
+                                    else:
+                                        cat_name = str(row.get("Category_Name_EN", ""))
+                                    if cat_name:
+                                        category_names_map[cat_id] = cat_name
+                            db_handler.close()
+                        except Exception as e:
+                            # Could not load category names
+                            pass
+                        
+                        category_scores = calculate_category_toxicity_scores(
+                            redflag_responses,
+                            redflag_questions,
+                            language=language,
+                            category_names_map=category_names_map if category_names_map else None
+                        )
             except Exception as e:
-                print(f"[WARNING] Could not calculate category scores for email: {e}")
+                # Could not calculate category scores for email
+                pass
             
             # Prepare email data - send_survey_report expects user_details dict
             email_data = {
@@ -105,12 +154,10 @@ class ReportStep(BaseStep):
         
         # Show goodbye message (merged from GoodbyeStep)
         name = self.session.user_details.get("name", "User")
-        st.divider()
         st.markdown(msg.get("goodbye_message", name=name))
         st.balloons()
         
         # Show contact information
-        st.divider()
         st.markdown(msg.get("contact_email_info_msg"))
         
         # Show option to start a new survey

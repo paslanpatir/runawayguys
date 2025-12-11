@@ -18,6 +18,15 @@ class SurveyController:
         if current_idx < len(self.steps):
             step = self.steps[current_idx]
 
+            # Show current step in terminal
+            step_names = [
+                "Language Selection", "User Details", "Boyfriend Name", "Welcome",
+                "Filter Questions", "RedFlag Questions", "GTK Questions", 
+                "Toxicity Opinion", "Results", "Feedback", "Report"
+            ]
+            step_name = step_names[current_idx] if current_idx < len(step_names) else step.name
+            print(f"[STEP {current_idx + 1}/{len(self.steps)}] {step_name}")
+
             # show progress bar at the top
             self.progress_manager.show_progress(step.name)
 
@@ -29,4 +38,5 @@ class SurveyController:
         else:
             # All steps completed, show 100% progress
             st.progress(1.0)
+            print("[COMPLETED] All survey steps completed")
 

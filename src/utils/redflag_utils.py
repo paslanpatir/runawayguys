@@ -111,12 +111,7 @@ def get_violated_filter_questions(
     # Create a mapping from filter_id to question object
     question_map = {f"F{q.filter_id}": q for q in questions}
     
-    print(f"[DEBUG] get_violated_filter_questions: {len(filter_responses)} responses, {len(questions)} questions")
-    print(f"[DEBUG] Question map keys: {list(question_map.keys())[:5]}...")  # Show first 5 keys
-    print(f"[DEBUG] Filter response keys: {list(filter_responses.keys())[:5]}...")  # Show first 5 response keys
-    
     if not questions:
-        print(f"[ERROR] No filter questions provided! Cannot detect violations.")
         return []
     
     # Filter and collect violated questions
@@ -125,16 +120,12 @@ def get_violated_filter_questions(
         # Get question object
         question = question_map.get(f_id)
         if question:
-            print(f"[DEBUG] Checking {f_id}: answer={answer}, upper_limit={question.upper_limit}, violated={answer >= question.upper_limit}")
             if answer >= question.upper_limit:
                 # Use English for LLM, otherwise use specified language
                 question_lang = "EN" if use_english_for_llm else language
                 question_text = question.get_question(question_lang)
                 violated_questions.append((question_text, answer, f_id))
-        else:
-            print(f"[DEBUG] No question found for {f_id} in question_map")
     
-    print(f"[DEBUG] Total violated questions: {len(violated_questions)}")
     return violated_questions
 
 
