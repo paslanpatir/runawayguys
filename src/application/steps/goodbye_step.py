@@ -29,11 +29,9 @@ class GoodbyeStep(BaseStep):
         st.balloons()
 
         # Show contact information
-        st.divider()
         st.markdown(msg.get("contact_email_info_msg"))
 
         # Show option to start a new survey
-        st.divider()
         button_text = msg.get("start_new_survey")
         if st.button(button_text):
             # Reset survey states but keep user_id and name
