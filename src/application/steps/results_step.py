@@ -121,6 +121,10 @@ class ResultsStep(BaseStep):
         llm_enabled = self.session.state.get("llm_enabled", False)
         if llm_enabled:
             st.divider()
+            # Generate insights only once if they don't exist
+            if "ai_insights" not in self.session.state and not self.session.state.get("ai_insights_generating", False):
+                self._generate_ai_insights()
+            # Always show insights if they exist
             self._show_ai_insights()
 
     def _show_toxic_graph(self):
@@ -313,133 +317,147 @@ class ResultsStep(BaseStep):
             print(f"[ERROR] Traceback: {traceback.format_exc()}")
             st.exception(e)  # Show full exception in Streamlit
 
-    def _show_ai_insights(self):
-        """Generate and display AI insights."""
+    def _generate_ai_insights(self):
+        """Generate AI insights (only called once)."""
         # Check if LLM is enabled
         llm_enabled = self.session.state.get("llm_enabled", False)
         if not llm_enabled:
-            # LLM feature is disabled, skip insights
+            return
+
+        # Set flag to prevent duplicate generation
+        self.session.state["ai_insights_generating"] = True
+        
+        language = self.session.user_details.get("language") or "EN"
+        msg = self.msg
+        
+        # Generate insights
+        spinner_text = msg.get("generating_insights_msg") if msg.texts.get("generating_insights_msg") else "Generating personalized insights..."
+        with st.spinner(spinner_text):
+            from src.services.insight_service import InsightService
+            from src.utils.redflag_utils import get_top_redflag_questions, get_violated_filter_questions
+            from src.adapters.database.database_handler import DatabaseHandler
+            from src.adapters.database.question_repository import QuestionRepository
+            from decimal import Decimal
+            
+            insight_service = InsightService(enabled=True)
+            user_name = self.session.user_details.get("name", "User")
+            bf_name = self.session.user_details.get("bf_name", "Your boyfriend")
+            user_id = self.session.user_details.get("user_id", "unknown")
+            email = self.session.user_details.get("email")
+            toxic_score = self.session.state.get("toxic_score", 0)
+            filter_violations = self.session.state.get("filter_violations", 0)
+            
+            # Get avg_toxic_score (convert from Decimal to float)
+            avg_toxic_score_decimal = self.session.state.get("avg_toxic_score", Decimal("0.5"))
+            if isinstance(avg_toxic_score_decimal, Decimal):
+                avg_toxic_score = float(avg_toxic_score_decimal)
+            else:
+                avg_toxic_score = float(avg_toxic_score_decimal) if avg_toxic_score_decimal else 0.5
+            
+            # Get top redflag questions for insights
+            top_redflag_questions = None
+            redflag_responses = self.session.state.get("redflag_responses")
+            questions = self.session.state.get("randomized_questions")
+            
+            if redflag_responses and questions:
+                # Get top N questions with rating >= minimum threshold
+                # Always use English versions for LLM (better performance)
+                top_redflag_questions = get_top_redflag_questions(
+                    redflag_responses=redflag_responses,
+                    questions=questions,
+                    language=language,  # For logging/display
+                    top_n=TOP_REDFLAG_QUESTIONS_COUNT,
+                    min_rating=MIN_REDFLAG_RATING,
+                    use_english_for_llm=True,  # Always use English for LLM
+                )
+            
+            # Get violated filter questions
+            violated_filter_questions = None
+            filter_responses = self.session.state.get("filter_responses")
+            
+            # Handle None case - convert to empty dict
+            if filter_responses is None:
+                filter_responses = {}
+            
+            filter_questions = self.session.state.get("randomized_filters")
+            
+            # Debug: Print filter responses and questions
+            print(f"[DEBUG] Filter responses: {filter_responses}")
+            print(f"[DEBUG] Filter responses type: {type(filter_responses)}")
+            print(f"[DEBUG] Filter questions in session: {filter_questions is not None}")
+            if filter_questions:
+                print(f"[DEBUG] Filter questions count: {len(filter_questions)}")
+            
+            # If filter questions not in session, load from database
+            if not filter_questions and filter_responses:
+                db_read_allowed = self.session.state.get("db_read_allowed", False)
+                db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
+                repository = QuestionRepository(db_handler)
+                filter_questions = repository.get_filter_questions()
+                # Cache them for potential future use
+                if filter_questions:
+                    self.session.state.randomized_filters = filter_questions
+                    print(f"[DEBUG] Loaded {len(filter_questions)} filter questions from database")
+            
+            if filter_responses and filter_questions:
+                print(f"[DEBUG] Getting violated filter questions from {len(filter_responses)} responses and {len(filter_questions)} questions")
+                # Always use English versions for LLM (better performance)
+                violated_filter_questions = get_violated_filter_questions(
+                    filter_responses=filter_responses,
+                    questions=filter_questions,
+                    language=language,  # For logging/display
+                    use_english_for_llm=True,  # Always use English for LLM
+                )
+                print(f"[DEBUG] Found {len(violated_filter_questions) if violated_filter_questions else 0} violated filter questions")
+                if violated_filter_questions:
+                    # Print only filter IDs to avoid encoding issues with Turkish characters
+                    violated_ids = [q[2] for q in violated_filter_questions]  # q[2] is filter_id
+                    print(f"[DEBUG] Violated filter IDs: {violated_ids}")
+            else:
+                print(f"[DEBUG] Cannot get violated filter questions: filter_responses={bool(filter_responses)}, filter_questions={bool(filter_questions)}")
+            
+            # Prepare session data for logging
+            session_data_for_log = {
+                "session_id": user_id,
+                "avg_toxic_score": str(avg_toxic_score),
+                "filter_responses": filter_responses,
+                "redflag_responses": self.session.state.get("redflag_responses", {}),
+                "toxicity_rating": self.session.state.get("toxicity_rating"),
+                "feedback_rating": self.session.state.get("feedback_rating"),
+                "session_start_time": self.session.state.get("session_start_time", ""),
+                "result_start_time": self.session.state.get("result_start_time", ""),
+            }
+            
+            insights = insight_service.generate_survey_insights(
+                user_name=user_name,
+                bf_name=bf_name,
+                toxic_score=toxic_score,
+                avg_toxic_score=avg_toxic_score,
+                filter_violations=filter_violations,
+                violated_filter_questions=violated_filter_questions,
+                language=language,
+                top_redflag_questions=top_redflag_questions,
+                user_id=user_id,
+                email=email,
+                session_data=session_data_for_log,
+            )
+            
+            self.session.state["ai_insights"] = insights
+            insight_service.close()
+        
+        # Clear the generating flag after generation (success or failure)
+        if "ai_insights_generating" in self.session.state:
+            del self.session.state["ai_insights_generating"]
+    
+    def _show_ai_insights(self):
+        """Display AI insights (only shows, does not generate)."""
+        # Check if LLM is enabled
+        llm_enabled = self.session.state.get("llm_enabled", False)
+        if not llm_enabled:
             return
 
         language = self.session.user_details.get("language") or "EN"
         msg = self.msg
-
-        # Check if insights already generated
-        if "ai_insights" not in self.session.state:
-            # Generate insights
-            spinner_text = msg.get("generating_insights_msg") if msg.texts.get("generating_insights_msg") else "Generating personalized insights..."
-            with st.spinner(spinner_text):
-                from src.services.insight_service import InsightService
-                from src.utils.redflag_utils import get_top_redflag_questions, get_violated_filter_questions
-                from src.adapters.database.database_handler import DatabaseHandler
-                from src.adapters.database.question_repository import QuestionRepository
-                from decimal import Decimal
-                
-                insight_service = InsightService(enabled=True)
-                user_name = self.session.user_details.get("name", "User")
-                bf_name = self.session.user_details.get("bf_name", "Your boyfriend")
-                user_id = self.session.user_details.get("user_id", "unknown")
-                email = self.session.user_details.get("email")
-                toxic_score = self.session.state.get("toxic_score", 0)
-                filter_violations = self.session.state.get("filter_violations", 0)
-                
-                # Get avg_toxic_score (convert from Decimal to float)
-                avg_toxic_score_decimal = self.session.state.get("avg_toxic_score", Decimal("0.5"))
-                if isinstance(avg_toxic_score_decimal, Decimal):
-                    avg_toxic_score = float(avg_toxic_score_decimal)
-                else:
-                    avg_toxic_score = float(avg_toxic_score_decimal) if avg_toxic_score_decimal else 0.5
-                
-                # Get top redflag questions for insights
-                top_redflag_questions = None
-                redflag_responses = self.session.state.get("redflag_responses")
-                questions = self.session.state.get("randomized_questions")
-                
-                if redflag_responses and questions:
-                    # Get top N questions with rating >= minimum threshold
-                    # Always use English versions for LLM (better performance)
-                    top_redflag_questions = get_top_redflag_questions(
-                        redflag_responses=redflag_responses,
-                        questions=questions,
-                        language=language,  # For logging/display
-                        top_n=TOP_REDFLAG_QUESTIONS_COUNT,
-                        min_rating=MIN_REDFLAG_RATING,
-                        use_english_for_llm=True,  # Always use English for LLM
-                    )
-                
-                # Get violated filter questions
-                violated_filter_questions = None
-                filter_responses = self.session.state.get("filter_responses")
-                
-                # Handle None case - convert to empty dict
-                if filter_responses is None:
-                    filter_responses = {}
-                
-                filter_questions = self.session.state.get("randomized_filters")
-                
-                # Debug: Print filter responses and questions
-                print(f"[DEBUG] Filter responses: {filter_responses}")
-                print(f"[DEBUG] Filter responses type: {type(filter_responses)}")
-                print(f"[DEBUG] Filter questions in session: {filter_questions is not None}")
-                if filter_questions:
-                    print(f"[DEBUG] Filter questions count: {len(filter_questions)}")
-                
-                # If filter questions not in session, load from database
-                if not filter_questions and filter_responses:
-                    db_read_allowed = self.session.state.get("db_read_allowed", False)
-                    db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
-                    repository = QuestionRepository(db_handler)
-                    filter_questions = repository.get_filter_questions()
-                    # Cache them for potential future use
-                    if filter_questions:
-                        self.session.state.randomized_filters = filter_questions
-                        print(f"[DEBUG] Loaded {len(filter_questions)} filter questions from database")
-                
-                if filter_responses and filter_questions:
-                    print(f"[DEBUG] Getting violated filter questions from {len(filter_responses)} responses and {len(filter_questions)} questions")
-                    # Always use English versions for LLM (better performance)
-                    violated_filter_questions = get_violated_filter_questions(
-                        filter_responses=filter_responses,
-                        questions=filter_questions,
-                        language=language,  # For logging/display
-                        use_english_for_llm=True,  # Always use English for LLM
-                    )
-                    print(f"[DEBUG] Found {len(violated_filter_questions) if violated_filter_questions else 0} violated filter questions")
-                    if violated_filter_questions:
-                        # Print only filter IDs to avoid encoding issues with Turkish characters
-                        violated_ids = [q[2] for q in violated_filter_questions]  # q[2] is filter_id
-                        print(f"[DEBUG] Violated filter IDs: {violated_ids}")
-                else:
-                    print(f"[DEBUG] Cannot get violated filter questions: filter_responses={bool(filter_responses)}, filter_questions={bool(filter_questions)}")
-                
-                # Prepare session data for logging
-                session_data_for_log = {
-                    "session_id": user_id,
-                    "avg_toxic_score": str(avg_toxic_score),
-                    "filter_responses": filter_responses,
-                    "redflag_responses": self.session.state.get("redflag_responses", {}),
-                    "toxicity_rating": self.session.state.get("toxicity_rating"),
-                    "feedback_rating": self.session.state.get("feedback_rating"),
-                    "session_start_time": self.session.state.get("session_start_time", ""),
-                    "result_start_time": self.session.state.get("result_start_time", ""),
-                }
-                
-                insights = insight_service.generate_survey_insights(
-                    user_name=user_name,
-                    bf_name=bf_name,
-                    toxic_score=toxic_score,
-                    avg_toxic_score=avg_toxic_score,
-                    filter_violations=filter_violations,
-                    violated_filter_questions=violated_filter_questions,
-                    language=language,
-                    top_redflag_questions=top_redflag_questions,
-                    user_id=user_id,
-                    email=email,
-                    session_data=session_data_for_log,
-                )
-                
-                self.session.state["ai_insights"] = insights
-                insight_service.close()
 
         # Display insights
         insights = self.session.state.get("ai_insights")

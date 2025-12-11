@@ -9,14 +9,21 @@ class BaseStep:
     def __init__(self):
         # Initialize session state wrapper
         self.session = SessionManager()
-
-        # Store Message object directly
-        lang = self.session.user_details.get("language") or "NEUTRAL"
-        self._msg = Message(lang)  # private variable
+        # Message object will be created dynamically in msg property
+        self._msg = None
 
     @property
     def msg(self):
-        """Access the Message object."""
+        """Access the Message object, creating it with current language if needed."""
+        if self._msg is None:
+            # Use "Neutral" (capital N) to match Message class default
+            lang = self.session.user_details.get("language") or "Neutral"
+            self._msg = Message(lang)
+        else:
+            # Update language if it has changed
+            current_lang = self.session.user_details.get("language") or "Neutral"
+            if self._msg.language != current_lang:
+                self._msg = Message(current_lang)
         return self._msg
 
     def run(self):

@@ -12,6 +12,12 @@ class AskUserDetails(BaseStep):
 
         st.write(msg.get("enter_details_msg"))
 
+        # Use a session state flag to track if form was submitted with errors
+        form_error = st.session_state.get("user_details_form_error", None)
+        if form_error:
+            st.error(form_error)
+            st.session_state.user_details_form_error = None  # Clear after showing
+
         with st.form("user_details_form"):
             name = st.text_input(msg.get("name_input"), key="name_input")
             # Email is optional - if provided, results will be sent via email
@@ -29,16 +35,24 @@ class AskUserDetails(BaseStep):
                         if is_valid_email(email):
                             self.session.user_details["name"] = name
                             self.session.user_details["email"] = email
+                            # Clear any previous error
+                            if "user_details_form_error" in st.session_state:
+                                del st.session_state.user_details_form_error
                             st.rerun()
                         else:
-                            st.error(msg.get("enter_valid_email_msg"))
+                            st.session_state.user_details_form_error = msg.get("enter_valid_email_msg")
+                            st.rerun()
                     else:
                         # No email provided, just save name
                         self.session.user_details["name"] = name
                         self.session.user_details["email"] = None
+                        # Clear any previous error
+                        if "user_details_form_error" in st.session_state:
+                            del st.session_state.user_details_form_error
                         st.rerun()
                 else:
-                    st.error(msg.get("enter_name_msg"))
+                    st.session_state.user_details_form_error = msg.get("enter_name_msg")
+                    st.rerun()
 
         return self.session.user_details.get("name") is not None
 
