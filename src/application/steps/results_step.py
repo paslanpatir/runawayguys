@@ -27,8 +27,6 @@ class ResultsStep(BaseStep):
         self.db_write_allowed = db_write_allowed
 
     def run(self):
-        from datetime import datetime
-
         language = self.session.user_details.get("language") or "EN"
         msg = self.msg
 
@@ -127,8 +125,10 @@ class ResultsStep(BaseStep):
             # Generate insights only once if they don't exist
             if "ai_insights" not in self.session.state and not self.session.state.get("ai_insights_generating", False):
                 self._generate_ai_insights()
-            # Always show insights if they exist
-            self._show_ai_insights()
+            # Show insights only once (use flag to prevent duplicate display)
+            if "ai_insights_shown" not in self.session.state:
+                self._show_ai_insights()
+                self.session.state["ai_insights_shown"] = True
 
     def _show_toxic_graph(self):
         """Show toxicity comparison graph using plotnine."""
@@ -247,25 +247,15 @@ class ResultsStep(BaseStep):
                         if cat_name:
                             category_names_map[cat_id] = cat_name
             except Exception as e:
-                print(f"[WARNING] Could not load category names: {e}")
+                category_names_map = {}
             
             # Calculate category scores with language-specific names
             category_scores = calculate_category_toxicity_scores(
                 redflag_responses, questions, language, category_names_map
             )
             
-            # Debug: Print category scores (ASCII-safe - only count)
-            print(f"[DEBUG] Number of categories with scores: {len(category_scores)}")
-            
             if not category_scores:
                 st.warning(msg.get("no_category_data_msg"))
-                print("[DEBUG] No category scores found. Checking questions...")
-                # Debug: Check if questions have category_name (ASCII-safe)
-                categories_count = 0
-                for q in questions[:5]:  # Check first 5 questions
-                    if q.category_id:
-                        categories_count += 1
-                print(f"[DEBUG] Questions with category_id (first 5): {categories_count}")
                 return
 
             # Prepare data for radar chart
@@ -313,12 +303,7 @@ class ResultsStep(BaseStep):
         except ImportError as e:
             st.warning(f"matplotlib is not installed. Install it with: pip install matplotlib. Error: {e}")
         except Exception as e:
-            # Show error to user for debugging
             st.error(f"Could not show category radar chart: {e}")
-            import traceback
-            print(f"[ERROR] Category radar chart error: {e}")
-            print(f"[ERROR] Traceback: {traceback.format_exc()}")
-            st.exception(e)  # Show full exception in Streamlit
 
     def _generate_ai_insights(self):
         """Generate AI insights (only called once)."""
@@ -338,9 +323,7 @@ class ResultsStep(BaseStep):
         with st.spinner(spinner_text):
             from src.services.insight_service import InsightService
             from src.utils.redflag_utils import get_top_redflag_questions, get_violated_filter_questions
-            from src.adapters.database.database_handler import DatabaseHandler
             from src.adapters.database.question_repository import QuestionRepository
-            from decimal import Decimal
             
             insight_service = InsightService(enabled=True)
             user_name = self.session.user_details.get("name", "User")
@@ -384,13 +367,6 @@ class ResultsStep(BaseStep):
             
             filter_questions = self.session.state.get("randomized_filters")
             
-            # Debug: Print filter responses and questions
-            print(f"[DEBUG] Filter responses: {filter_responses}")
-            print(f"[DEBUG] Filter responses type: {type(filter_responses)}")
-            print(f"[DEBUG] Filter questions in session: {filter_questions is not None}")
-            if filter_questions:
-                print(f"[DEBUG] Filter questions count: {len(filter_questions)}")
-            
             # If filter questions not in session, load from database
             if not filter_questions and filter_responses:
                 db_read_allowed = self.session.state.get("db_read_allowed", False)
@@ -400,24 +376,15 @@ class ResultsStep(BaseStep):
                 # Cache them for potential future use
                 if filter_questions:
                     self.session.state.randomized_filters = filter_questions
-                    print(f"[DEBUG] Loaded {len(filter_questions)} filter questions from database")
             
             if filter_responses and filter_questions:
-                print(f"[DEBUG] Getting violated filter questions from {len(filter_responses)} responses and {len(filter_questions)} questions")
                 # Always use English versions for LLM (better performance)
                 violated_filter_questions = get_violated_filter_questions(
                     filter_responses=filter_responses,
                     questions=filter_questions,
-                    language=language,  # For logging/display
+                    language=language,
                     use_english_for_llm=True,  # Always use English for LLM
                 )
-                print(f"[DEBUG] Found {len(violated_filter_questions) if violated_filter_questions else 0} violated filter questions")
-                if violated_filter_questions:
-                    # Print only filter IDs to avoid encoding issues with Turkish characters
-                    violated_ids = [q[2] for q in violated_filter_questions]  # q[2] is filter_id
-                    print(f"[DEBUG] Violated filter IDs: {violated_ids}")
-            else:
-                print(f"[DEBUG] Cannot get violated filter questions: filter_responses={bool(filter_responses)}, filter_questions={bool(filter_questions)}")
             
             # Prepare session data for logging
             session_data_for_log = {
@@ -763,8 +730,6 @@ class ResultsStep(BaseStep):
             
         except Exception as e:
             print(f"[ERROR] Failed to update Summary_Sessions: {e}")
-            import traceback
-            print(f"[ERROR] Traceback: {traceback.format_exc()}")
     
     def _save_session_insights(self, db_handler):
         """Save session insights to database (CSV or DynamoDB)."""
@@ -853,12 +818,8 @@ class ResultsStep(BaseStep):
                     db_handler.add_record("session_insights", record_data)
                     print(f"[OK] Created new session_insights record (id: {session_id})")
             except Exception as e:
-                print(f"[WARNING] Error checking existing record, trying to add: {e}")
                 db_handler.add_record("session_insights", record_data)
-                print(f"[OK] Session insights saved to database (id: {session_id})")
             
         except Exception as e:
             print(f"[ERROR] Failed to save session insights: {e}")
-            import traceback
-            print(f"[ERROR] Traceback: {traceback.format_exc()}")
 
