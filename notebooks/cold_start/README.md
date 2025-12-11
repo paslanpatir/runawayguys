@@ -34,17 +34,22 @@ Provides utilities to manage session records in DynamoDB/CSV.
 **Functions:**
 
 #### Delete a Session
-Deletes a session record from all related tables and updates Summary_Sessions.
+Deletes a session record from all related tables by session_id and updates Summary_Sessions.
 
 1. Set `USE_DYNAMODB = True` or `False` in the configuration cell
-2. Uncomment and modify the example cell:
+2. Get the session_id from `list_sessions()` output (shown as "Session ID")
+3. Uncomment and modify the example cell:
 ```python
 delete_session(
-    user_id="your_user_id_here",
-    boyfriend_name="boyfriend_name_here",
+    session_id="your_session_id_here",  # This is the 'id' column value from the table
     db_write_allowed=USE_DYNAMODB
 )
 ```
+
+**Note:** 
+- The `session_id` parameter is the value stored in the `id` column in all database tables
+- This value is a hash of user_id and boyfriend_name
+- You can get it from the `list_sessions()` function output
 
 #### Update a Record
 Updates a record in a specific table by session_id.
