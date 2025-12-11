@@ -14,7 +14,6 @@ from src.application.steps.ask_boyfriend_name import AskBoyfriendName
 from src.application.steps.welcome import Welcome
 from src.application.steps.ask_filter_questions import FilterQuestionsStep
 from src.application.steps.redflag_questions_step import RedFlagQuestionsStep
-from src.application.steps.gtk_questions_step import GTKQuestionsStep
 from src.application.steps.toxicity_opinion_step import ToxicityOpinionStep
 from src.application.steps.results_step import ResultsStep
 from src.application.steps.feedback_step import FeedbackStep
@@ -53,10 +52,9 @@ def main(DB_READ, DB_WRITE, LLM_ENABLED=True):
         AskLanguage(),
         AskUserDetails(),
         AskBoyfriendName(),
-        Welcome(),
+        Welcome(),  # Now includes GTK questions
         FilterQuestionsStep(),
         RedFlagQuestionsStep(),
-        GTKQuestionsStep(),
         ToxicityOpinionStep(),
         ResultsStep(DB_READ, DB_WRITE),
         FeedbackStep(DB_WRITE),
