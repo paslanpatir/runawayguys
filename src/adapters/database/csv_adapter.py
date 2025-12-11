@@ -21,14 +21,36 @@ class CSVAdapter(DatabasePort):
         return pd.read_csv(file_path, sep=";")
 
     def add_record(self, table_name: str, newdata_dict: dict) -> bool:
-        """Append record into semicolon-separated CSV in data/."""
+        """Append record into semicolon-separated CSV in data/.
+        
+        Preserves column order: if file exists, uses existing column order;
+        otherwise uses the order from newdata_dict (Python 3.7+ preserves dict order).
+        """
         file_path = os.path.join(self.data_dir, f"{table_name}.csv")
-        temp = pd.DataFrame([newdata_dict])
 
         if os.path.exists(file_path):
             existing_data = pd.read_csv(file_path, sep=";")
+            # Preserve existing column order
+            existing_columns = list(existing_data.columns)
+            
+            # Create new row with all existing columns, filling missing ones with None
+            new_row = {}
+            for col in existing_columns:
+                new_row[col] = newdata_dict.get(col)
+            
+            # Add any new columns that don't exist in the file
+            for col, val in newdata_dict.items():
+                if col not in existing_columns:
+                    new_row[col] = val
+                    existing_columns.append(col)
+            
+            # Create DataFrame with preserved column order
+            temp = pd.DataFrame([new_row], columns=existing_columns)
             updated_data = pd.concat([existing_data, temp], ignore_index=True)
         else:
+            # First record: use the order from newdata_dict
+            # Python 3.7+ preserves dict insertion order
+            temp = pd.DataFrame([newdata_dict])
             updated_data = temp
 
         updated_data.to_csv(file_path, sep=";", index=False)

@@ -3,7 +3,7 @@ import smtplib
 import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 from src.infrastructure.email_connection_manager import EmailConnectionManager
 from src.ports.email_port import EmailPort
 
@@ -32,6 +32,7 @@ class EmailAdapter(EmailPort):
         violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         language: str = "EN",
         insights: str = None,
+        category_scores: Optional[Dict[str, Tuple[float, int]]] = None,
     ) -> bool:
         """
         Send survey results report via email.
@@ -65,7 +66,7 @@ class EmailAdapter(EmailPort):
             # Create email body
             body = self._create_email_body(
                 user_name, bf_name, toxic_score, avg_toxic_score,
-                filter_violations, violated_filter_questions, language, insights
+                filter_violations, violated_filter_questions, language, insights, category_scores
             )
             msg.attach(MIMEText(body, "html"))
 
@@ -102,6 +103,7 @@ class EmailAdapter(EmailPort):
         violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         language: str = "EN",
         insights: str = None,
+        category_scores: Optional[Dict[str, Tuple[float, int]]] = None,
     ) -> str:
         """Create HTML email body with survey results and insights."""
         score_percentage = round(toxic_score * 100, 1)
@@ -120,6 +122,64 @@ class EmailAdapter(EmailPort):
                 for question_text, answer, f_id in violated_filter_questions:
                     violated_filters_html += f"<li>{question_text}</li>"
                 violated_filters_html += "</ul>"
+        
+        # Format category scores table for HTML
+        category_table_html = ""
+        if category_scores:
+            if language == "TR":
+                category_table_html = "<h4 style='margin-top: 15px;'>Kategori Bazında Toksisite Skorları:</h4>"
+                category_table_html += """
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px;">
+                        <thead>
+                            <tr style="background-color: #f0f0f0;">
+                                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Kategori</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Skor (0-10)</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Soru Sayısı</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                """
+                # Sort by score (highest first)
+                sorted_categories = sorted(category_scores.items(), key=lambda x: x[1][0], reverse=True)
+                for category, (score, count) in sorted_categories:
+                    category_table_html += f"""
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #ddd;">{category}</td>
+                                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">{score:.2f}</td>
+                                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">{count}</td>
+                            </tr>
+                    """
+                category_table_html += """
+                        </tbody>
+                    </table>
+                """
+            else:
+                category_table_html = "<h4 style='margin-top: 15px;'>Category-Based Toxicity Scores:</h4>"
+                category_table_html += """
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px;">
+                        <thead>
+                            <tr style="background-color: #f0f0f0;">
+                                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Category</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Score (0-10)</th>
+                                <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Questions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                """
+                # Sort by score (highest first)
+                sorted_categories = sorted(category_scores.items(), key=lambda x: x[1][0], reverse=True)
+                for category, (score, count) in sorted_categories:
+                    category_table_html += f"""
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #ddd;">{category}</td>
+                                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">{score:.2f}</td>
+                                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">{count}</td>
+                            </tr>
+                    """
+                category_table_html += """
+                        </tbody>
+                    </table>
+                """
         
         # Format insights for HTML
         insights_html = ""
@@ -154,6 +214,7 @@ class EmailAdapter(EmailPort):
                             <p><strong>Ortalama Toksisite Skoru:</strong> {avg_score_percentage}%</p>
                             <p><strong>Filtre İhlalleri:</strong> {filter_violations}</p>
                             {violated_filters_html}
+                            {category_table_html}
                         </div>
                         {insights_html}
                         <p>Detaylı rapor ve grafikler için web sitesini ziyaret edebilirsiniz.</p>
@@ -184,6 +245,7 @@ class EmailAdapter(EmailPort):
                             <p><strong>Average Toxicity Score:</strong> {avg_score_percentage}%</p>
                             <p><strong>Filter Violations:</strong> {filter_violations}</p>
                             {violated_filters_html}
+                            {category_table_html}
                         </div>
                         {insights_html}
                         <p>Visit our website for detailed reports and graphs.</p>
@@ -230,6 +292,7 @@ def send_survey_report(
     filter_violations = session_data.get("filter_violations", 0)
     violated_filter_questions = session_data.get("violated_filter_questions")
     insights = session_data.get("ai_insights")
+    category_scores = session_data.get("category_scores")
     
     return sender.send_report(
         recipient_email=recipient_email,
@@ -241,5 +304,6 @@ def send_survey_report(
         violated_filter_questions=violated_filter_questions,
         language=language,
         insights=insights,
+        category_scores=category_scores,
     )
 

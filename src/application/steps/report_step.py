@@ -83,12 +83,45 @@ class ReportStep(BaseStep):
                     language=language,
                 )
             
+            # Calculate category scores for email
+            category_scores = None
+            redflag_responses = self.session.state.get("redflag_responses")
+            questions = self.session.state.get("randomized_questions")
+            
+            if redflag_responses and questions:
+                from src.utils.category_analysis import calculate_category_toxicity_scores
+                from src.adapters.database.question_repository import QuestionRepository
+                
+                # Load category names from RedFlagCategories table based on language
+                category_names_map = {}
+                try:
+                    db_read_allowed = self.session.state.get("db_read_allowed", False)
+                    db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
+                    categories_df = db_handler.load_table("RedFlagCategories")
+                    if not categories_df.empty:
+                        for _, row in categories_df.iterrows():
+                            cat_id = int(row["Category_ID"])
+                            if language == "TR":
+                                cat_name = str(row.get("Category_Name_TR", ""))
+                            else:
+                                cat_name = str(row.get("Category_Name_EN", ""))
+                            if cat_name:
+                                category_names_map[cat_id] = cat_name
+                except Exception as e:
+                    print(f"[WARNING] Could not load category names for email: {e}")
+                
+                # Calculate category scores
+                category_scores = calculate_category_toxicity_scores(
+                    redflag_responses, questions, language, category_names_map
+                )
+            
             session_data = {
                 "user_details": self.session.user_details,
                 "toxic_score": self.session.state.get("toxic_score", 0),
                 "avg_toxic_score": avg_toxic_score,
                 "filter_violations": self.session.state.get("filter_violations", 0),
                 "violated_filter_questions": violated_filter_questions,
+                "category_scores": category_scores,  # Add category scores
             }
             # Only include insights if LLM is enabled
             if llm_enabled:

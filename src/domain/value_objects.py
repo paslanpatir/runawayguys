@@ -207,7 +207,16 @@ class SessionResponse:
     filter_responses: Dict[str, Decimal] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for database storage."""
+        """Convert to dictionary for database storage.
+        
+        Ensures all Q1-Q75 and F1-F15 columns are present in correct order,
+        even if some questions were not answered (set to None).
+        This prevents column misalignment in CSV files.
+        
+        Column order matches the original notebook:
+        id, user_id, name, email, boyfriend_name, language, toxic_score,
+        Q1-Q75, F1-F15, filter_violations, session_start_time, result_start_time, session_end_time
+        """
         result = {
             "id": self.id,
             "user_id": self.user_id,
@@ -216,14 +225,26 @@ class SessionResponse:
             "boyfriend_name": self.boyfriend_name,
             "language": self.language,
             "toxic_score": self.toxic_score,
-            "filter_violations": self.filter_violations,
-            "session_start_time": self.session_start_time,
-            "result_start_time": self.result_start_time,
-            "session_end_time": self.session_end_time,
         }
-        # Add redflag and filter responses
-        result.update({k: v for k, v in self.redflag_responses.items()})
-        result.update({k: v for k, v in self.filter_responses.items()})
+        
+        # Add all redflag responses (Q1-Q75) in order, with None for missing ones
+        for q_num in range(1, 76):  # Q1 to Q75
+            q_key = f"Q{q_num}"
+            result[q_key] = self.redflag_responses.get(q_key)
+        
+        # Add all filter responses (F1-F15) in order, with None for missing ones
+        for f_num in range(1, 16):  # F1 to F15
+            f_key = f"F{f_num}"
+            result[f_key] = self.filter_responses.get(f_key)
+        
+        # Add filter_violations after Q and F columns (matching notebook order)
+        result["filter_violations"] = self.filter_violations
+        
+        # Add timestamps at the end
+        result["session_start_time"] = self.session_start_time
+        result["result_start_time"] = self.result_start_time
+        result["session_end_time"] = self.session_end_time
+        
         return result
 
 

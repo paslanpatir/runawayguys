@@ -108,6 +108,18 @@ class Message:
             },
             "toxic_graph_x": {"TR": "indeks (skora göre sıralı)", "EN": "Index (Sorted by Score)"},
             "toxic_graph_y": {"TR": "Toksiklik", "EN": "Toxicity"},
+            "category_toxicity_header": {
+                "TR": "Kategori Bazında Toksisite Analizi",
+                "EN": "Category-Based Toxicity Analysis",
+            },
+            "category_toxicity_description": {
+                "TR": "Aşağıdaki grafik, {bf_name}'in hangi kategorilerde en toksik olduğunu gösterir. Skorlar 0-10 arasındadır (10 = en toksik).",
+                "EN": "The chart below shows in which categories {bf_name} is most toxic. Scores range from 0-10 (10 = most toxic).",
+            },
+            "no_category_data_msg": {
+                "TR": "Kategori verisi mevcut değil.",
+                "EN": "Category data is not available.",
+            },
             "feedback_msg": {"TR": "Testi ne kadar beğendin:", "EN": "How did you like the test:"},
             "please_rate_msg": {"TR": "Lütfen bir değerlendirme yapın.", "EN": "Please provide a rating."},
             "sentiment_mapping": {"TR": ["Bir", "İki", "Üç", "Dört", "Beş"], "EN": ["One", "Two", "Three", "Four", "Five"]},

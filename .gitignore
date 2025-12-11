@@ -1,6 +1,10 @@
 # Data
 /data/
 
+# Documentation (keep README.md in root)
+/documentation/
+/docs_misc/
+
 # Config - ignore all secret files but keep example templates
 config/*.txt
 config/*.env

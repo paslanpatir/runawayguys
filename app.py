@@ -23,7 +23,7 @@ LLM_ENABLED = True  # Enable LLM features (requires HF_API_TOKEN or config/llm_c
 
 # DEBUG MODE: Set to True to skip survey steps and go directly to results page with mock data
 # Or add ?debug=true to the URL
-DEBUG_MODE = False  # Set to False to use normal flow
+DEBUG_MODE = True  # Set to True to use debug mode with mock data
 
 if __name__ == "__main__":
     import os

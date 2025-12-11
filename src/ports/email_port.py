@@ -1,6 +1,6 @@
 """Port (interface) for email operations."""
 from abc import ABC, abstractmethod
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 
 
 class EmailPort(ABC):
@@ -18,6 +18,7 @@ class EmailPort(ABC):
         violated_filter_questions: Optional[List[Tuple[str, int, str]]] = None,
         language: str = "EN",
         insights: str = None,
+        category_scores: Optional[Dict[str, Tuple[float, int]]] = None,
     ) -> bool:
         """
         Send a survey report email.
@@ -32,6 +33,7 @@ class EmailPort(ABC):
             violated_filter_questions: List of violated filter questions (question_text, answer, filter_id)
             language: Language code (TR or EN)
             insights: AI-generated insights (optional)
+            category_scores: Dictionary mapping category_name to (average_score, question_count) (optional)
         """
         pass
 

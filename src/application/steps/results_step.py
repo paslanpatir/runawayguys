@@ -96,6 +96,10 @@ class ResultsStep(BaseStep):
         # Try to show toxic graph
         self._show_toxic_graph()
 
+        # Show category-based toxicity radar chart
+        st.divider()
+        self._show_category_radar_chart()
+
         # Show AI-generated insights (only if LLM is enabled)
         llm_enabled = self.session.state.get("llm_enabled", False)
         if llm_enabled:
@@ -175,6 +179,122 @@ class ResultsStep(BaseStep):
         except Exception as e:
             # Silently fail if graph can't be shown
             st.debug(f"Could not show graph: {e}")
+
+    def _show_category_radar_chart(self):
+        """Show category-based toxicity radar chart using matplotlib."""
+        try:
+            import matplotlib.pyplot as plt
+            import numpy as np
+            from src.utils.category_analysis import calculate_category_toxicity_scores
+            from src.adapters.database.question_repository import QuestionRepository
+
+            language = self.session.user_details.get("language") or "EN"
+            msg = self.msg
+            bf_name = self.session.user_details.get("bf_name", "Your boyfriend")
+
+            # Get redflag responses and questions
+            redflag_responses = self.session.state.get("redflag_responses")
+            if not redflag_responses:
+                return
+
+            # Load questions from repository
+            questions = self.session.state.get("randomized_questions")
+            db_read_allowed = self.session.state.get("db_read_allowed", False)
+            db_handler = DatabaseHandler(db_read_allowed=db_read_allowed)
+            
+            if not questions:
+                repository = QuestionRepository(db_handler)
+                questions = repository.get_redflag_questions()
+
+            if not questions:
+                return
+
+            # Load category names from RedFlagCategories table based on language
+            category_names_map = {}
+            try:
+                categories_df = db_handler.load_table("RedFlagCategories")
+                if not categories_df.empty:
+                    for _, row in categories_df.iterrows():
+                        cat_id = int(row["Category_ID"])
+                        if language == "TR":
+                            cat_name = str(row.get("Category_Name_TR", ""))
+                        else:
+                            cat_name = str(row.get("Category_Name_EN", ""))
+                        if cat_name:
+                            category_names_map[cat_id] = cat_name
+            except Exception as e:
+                print(f"[WARNING] Could not load category names: {e}")
+            
+            # Calculate category scores with language-specific names
+            category_scores = calculate_category_toxicity_scores(
+                redflag_responses, questions, language, category_names_map
+            )
+            
+            # Debug: Print category scores (ASCII-safe - only count)
+            print(f"[DEBUG] Number of categories with scores: {len(category_scores)}")
+            
+            if not category_scores:
+                st.warning(msg.get("no_category_data_msg"))
+                print("[DEBUG] No category scores found. Checking questions...")
+                # Debug: Check if questions have category_name (ASCII-safe)
+                categories_count = 0
+                for q in questions[:5]:  # Check first 5 questions
+                    if q.category_id:
+                        categories_count += 1
+                print(f"[DEBUG] Questions with category_id (first 5): {categories_count}")
+                return
+
+            # Prepare data for radar chart
+            categories = list(category_scores.keys())
+            scores = [score for score, _ in category_scores.values()]
+            
+            # Number of categories
+            N = len(categories)
+            if N < 3:  # Need at least 3 categories for a meaningful radar chart
+                st.info(msg.get("no_category_data_msg"))
+                return
+
+            # Compute angle for each category
+            angles = [n / float(N) * 2 * np.pi for n in range(N)]
+            angles += angles[:1]  # Complete the circle
+
+            # Prepare scores (add first value at the end to close the circle)
+            scores_plot = scores + [scores[0]]
+
+            # Add title
+            st.subheader(msg.get("category_toxicity_header"))
+            st.caption(msg.get("category_toxicity_description", bf_name=bf_name))
+
+            # Create the figure using matplotlib (smaller size)
+            fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(projection='polar'))
+            
+            # Plot the data
+            ax.plot(angles, scores_plot, 'o-', linewidth=2, label=bf_name, color='darkblue')
+            ax.fill(angles, scores_plot, alpha=0.25, color='lightblue')
+            
+            # Add category labels (smaller font for better fit)
+            ax.set_xticks(angles[:-1])
+            ax.set_xticklabels(categories, fontsize=9)
+            
+            # Set y-axis limits (0-10 scale)
+            ax.set_ylim(0, 10)
+            ax.set_yticks([2, 4, 6, 8, 10])
+            ax.set_yticklabels(['2', '4', '6', '8', '10'], fontsize=8)
+            ax.grid(True)
+
+            # Display the chart
+            st.pyplot(fig)
+            plt.close(fig)
+
+        except ImportError as e:
+            st.warning(f"matplotlib is not installed. Install it with: pip install matplotlib. Error: {e}")
+        except Exception as e:
+            # Show error to user for debugging
+            st.error(f"Could not show category radar chart: {e}")
+            import traceback
+            print(f"[ERROR] Category radar chart error: {e}")
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            st.exception(e)  # Show full exception in Streamlit
 
     def _show_ai_insights(self):
         """Generate and display AI insights."""
