@@ -107,11 +107,29 @@ class SessionManager:
         # Reset AI insights
         if "ai_insights" in self.state:
             del self.state.ai_insights
+        if "ai_insights_generating" in self.state:
+            del self.state.ai_insights_generating
+        if "ai_insights_shown" in self.state:
+            del self.state.ai_insights_shown
         
-        # Reset data_saved flag so next survey can save
-        self.state.data_saved = False
+        # Reset data saving flags so next survey can save
+        if "data_saved" in self.state:
+            self.state.data_saved = False
+        if "main_data_saved" in self.state:
+            self.state.main_data_saved = False
+        if "feedback_saved" in self.state:
+            self.state.feedback_saved = False
+        
+        # Reset timing flags
+        if "result_start_time" in self.state:
+            del self.state.result_start_time
+        
+        # Reset UI flags
+        if "results_balloons_shown" in self.state:
+            del self.state.results_balloons_shown
         
         # Reset step counter to start from boyfriend name step (step 2)
         # Step 0: Language, Step 1: User Details, Step 2: Boyfriend Name
+        # We keep language and user details, so we start from boyfriend name
         self.state.current_step = 2
 

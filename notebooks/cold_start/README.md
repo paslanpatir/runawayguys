@@ -137,6 +137,29 @@ reassign_session_ids_and_recalculate(dry_run=False)
 
 **WARNING:** This will delete ALL records from all session_* tables and CSV files. This action cannot be undone!
 
+### 9. `09_invert_redflag_questions.ipynb`
+
+Inverts YES/NO questions so that "Yes" always means a bad answer (toxic behavior).
+
+**Use this when:**
+- Some YES/NO questions have "Yes" as a good answer but the scoring system treats "Yes" as bad (7 points)
+- You need to rephrase questions so that "Yes" = bad answer consistently
+
+**What it does:**
+1. Lists all YES/NO questions for review
+2. Helps identify questions that need inversion
+3. Provides helper functions to automatically invert question text
+4. Allows manual editing of question text
+5. Updates both CSV and DynamoDB (if enabled)
+
+**Usage:**
+1. Set `USE_DYNAMODB = True` or `False` in the configuration cell
+2. Run the first cell to see all YES/NO questions
+3. Add question IDs to `QUESTIONS_TO_INVERT` list
+4. Run the inversion cells to automatically invert question text
+5. Manually edit any questions that need custom inversion
+6. Save to CSV and update DynamoDB (if enabled)
+
 **Use this when:**
 - You want to start fresh with clean data
 - You need to reset all session data
