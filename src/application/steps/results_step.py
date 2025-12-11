@@ -12,6 +12,7 @@ from src.domain.value_objects import (
 )
 from src.utils.utils import safe_decimal
 from datetime import datetime
+from src.utils.constants import DATE_FORMAT
 
 # Configuration for AI insights
 TOP_REDFLAG_QUESTIONS_COUNT = 5  # Number of top-rated redflag questions to include in insights
@@ -31,7 +32,7 @@ class ResultsStep(BaseStep):
         msg = self.msg
 
         if "result_start_time" not in self.session.state:
-            self.session.state["result_start_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.session.state["result_start_time"] = datetime.now().strftime(DATE_FORMAT)
 
         # Load summary data
         self._load_summary_data()
@@ -486,7 +487,7 @@ class ResultsStep(BaseStep):
         )
         
         session_id = generate_session_id(user_details.user_id, user_details.bf_name)
-        session_end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        session_end_time = datetime.now().strftime(DATE_FORMAT)
         
         # Create SessionResponse value object
         session_response = SessionResponse(
@@ -679,7 +680,7 @@ class ResultsStep(BaseStep):
             except:
                 pass
             
-            last_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            last_date = datetime.now().strftime(DATE_FORMAT)
             
             # Prepare update dictionary - DynamoDB requires Decimal types
             update_dict = {
@@ -774,7 +775,7 @@ class ResultsStep(BaseStep):
                 violated_filter_questions_text = " | ".join([q[0] for q in violated_filter_questions])
             
             # Prepare record data
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now().strftime(DATE_FORMAT)
             record_data = {
                 "id": session_id,
                 "timestamp": timestamp,

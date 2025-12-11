@@ -2,6 +2,7 @@
 import os
 import pandas as pd
 from src.ports.database_port import DatabasePort
+from src.utils.constants import CSV_SEPARATOR
 
 
 class CSVAdapter(DatabasePort):
@@ -18,7 +19,7 @@ class CSVAdapter(DatabasePort):
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"CSV file not found: {file_path}")
 
-        return pd.read_csv(file_path, sep=";")
+        return pd.read_csv(file_path, sep=CSV_SEPARATOR)
 
     def add_record(self, table_name: str, newdata_dict: dict) -> bool:
         """Append record into semicolon-separated CSV in data/.
@@ -29,7 +30,7 @@ class CSVAdapter(DatabasePort):
         file_path = os.path.join(self.data_dir, f"{table_name}.csv")
 
         if os.path.exists(file_path):
-            existing_data = pd.read_csv(file_path, sep=";")
+            existing_data = pd.read_csv(file_path, sep=CSV_SEPARATOR)
             # Preserve existing column order
             existing_columns = list(existing_data.columns)
             
@@ -53,7 +54,7 @@ class CSVAdapter(DatabasePort):
             temp = pd.DataFrame([newdata_dict])
             updated_data = temp
 
-        updated_data.to_csv(file_path, sep=";", index=False)
+        updated_data.to_csv(file_path, sep=CSV_SEPARATOR, index=False)
         print(f"[OK] Data saved to CSV: {file_path}")
         return True
 
@@ -63,7 +64,7 @@ class CSVAdapter(DatabasePort):
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"CSV file not found: {file_path}")
 
-        df = pd.read_csv(file_path, sep=";")
+        df = pd.read_csv(file_path, sep=CSV_SEPARATOR)
 
         mask = pd.Series(True, index=df.index)
         for k, v in key_dict.items():
@@ -72,7 +73,7 @@ class CSVAdapter(DatabasePort):
         if mask.any():
             for k, v in update_dict.items():
                 df.loc[mask, k] = v
-            df.to_csv(file_path, sep=";", index=False)
+            df.to_csv(file_path, sep=CSV_SEPARATOR, index=False)
             print(f"[OK] Record updated in CSV: {file_path}")
         else:
             print(f"[WARNING] No matching record found in {file_path} for key {key_dict}")
@@ -84,7 +85,7 @@ class CSVAdapter(DatabasePort):
             print(f"[WARNING] CSV file not found: {file_path}")
             return False
 
-        df = pd.read_csv(file_path, sep=";")
+        df = pd.read_csv(file_path, sep=CSV_SEPARATOR)
         
         if id_column not in df.columns:
             print(f"[WARNING] Column '{id_column}' not found in {table_name}")
@@ -96,7 +97,7 @@ class CSVAdapter(DatabasePort):
         deleted_count = initial_count - len(df)
 
         if deleted_count > 0:
-            df.to_csv(file_path, sep=";", index=False)
+            df.to_csv(file_path, sep=CSV_SEPARATOR, index=False)
             print(f"[OK] Deleted record with {id_column}={record_id} from {table_name}")
             return True
         else:

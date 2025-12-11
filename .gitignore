@@ -4,6 +4,7 @@
 # Documentation (keep README.md in root)
 /documentation/
 /docs_misc/
+/docs/
 
 # Config - ignore all secret files but keep example templates
 config/*.txt

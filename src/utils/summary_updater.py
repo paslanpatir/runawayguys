@@ -148,6 +148,7 @@ def update_summary_after_delete(
         # DynamoDB requires Decimal types for numeric values, not float
         # CSV adapter will handle Decimal conversion automatically
         from datetime import datetime
+from src.utils.constants import DATE_FORMAT
         update_dict = {
             "sum_toxic_score": sum_toxic_score,  # Keep as Decimal for DynamoDB
             "max_toxic_score": max_toxic_score,  # Keep as Decimal for DynamoDB
@@ -161,7 +162,7 @@ def update_summary_after_delete(
             "max_id_gtk_responses": 0,
             "max_id_feedback": 0,
             "max_id_session_toxicity_rating": 0,
-            "last_update_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "last_update_date": datetime.now().strftime(DATE_FORMAT),
         }
         
         # Update Summary_Sessions

@@ -12,6 +12,7 @@ from src.domain.value_objects import (
 )
 from src.utils.utils import safe_decimal
 from datetime import datetime
+from src.utils.constants import DATE_FORMAT
 
 
 class GoodbyeStep(BaseStep):
@@ -88,7 +89,7 @@ class GoodbyeStep(BaseStep):
             bf_name=self.session.user_details["bf_name"],
         )
 
-        session_end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        session_end_time = datetime.now().strftime(DATE_FORMAT)
         
         # Get or create session_id based on user_id and boyfriend_name
         from src.utils.session_id_generator import get_or_create_session_id
@@ -298,7 +299,7 @@ class GoodbyeStep(BaseStep):
             # We no longer need to track max IDs since session_ids are generated deterministically
             # from user_id + boyfriend_name, not sequentially
             
-            last_date = self.session.state.get("session_start_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            last_date = self.session.state.get("session_start_time", datetime.now().strftime(DATE_FORMAT))
             
             # Prepare update dictionary
             update_dict = {
@@ -401,7 +402,7 @@ class GoodbyeStep(BaseStep):
             # Prepare record data
             # DynamoDB requires Decimal types for numeric values, not float
             from decimal import Decimal
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now().strftime(DATE_FORMAT)
             record_data = {
                 "id": session_id,
                 "timestamp": timestamp,

@@ -2,6 +2,7 @@
 import streamlit as st
 import uuid
 from datetime import datetime
+from src.utils.constants import DATE_FORMAT
 
 
 class SessionManager:
@@ -25,7 +26,7 @@ class SessionManager:
         if "welcome_shown" not in self.state:
             self.state.welcome_shown = False
         if "session_start_time" not in self.state:
-            self.state.session_start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.state.session_start_time = datetime.now().strftime(DATE_FORMAT)
         if "filter_responses" not in self.state:
             self.state.filter_responses = None
             self.state.filter_violations = 0
@@ -71,7 +72,7 @@ class SessionManager:
         
         # Reset survey-specific states
         self.state.welcome_shown = False
-        self.state.session_start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.state.session_start_time = datetime.now().strftime(DATE_FORMAT)
         self.state.filter_responses = None
         self.state.filter_violations = 0
         self.state.redflag_responses = None
